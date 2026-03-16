@@ -8,9 +8,13 @@ const { scrapeYoumail } = require('./scrapers/youmail');
 const { scrapeSkipCalls } = require('./scrapers/skipCalls');
 const { scrapeWhoCallsMe } = require('./scrapers/whoCallsMe');
 const { scrapeGithubLists } = require('./scrapers/githubLists');
+const { scrapeOfcom } = require('./scrapers/ofcom');
+const { scrapeTrai } = require('./scrapers/trai');
+const { scrapeAcma } = require('./scrapers/acma');
 const { upsertFromScraper, insertRunLog, finalizeRunLog } = require('./db/queries');
 
 const SCRAPERS = [
+  // US Sources (8)
   { name: 'ftc',           fn: scrapeFtc },
   { name: '800notes',      fn: scrapeEightHundredNotes },
   { name: 'shouldianswer', fn: scrapeShouldIAnswer },
@@ -19,6 +23,10 @@ const SCRAPERS = [
   { name: 'skipcalls',     fn: scrapeSkipCalls },
   { name: 'whocallsme',    fn: scrapeWhoCallsMe },
   { name: 'github',        fn: scrapeGithubLists },
+  // International Sources (3)
+  { name: 'ofcom',         fn: scrapeOfcom },
+  { name: 'trai',          fn: scrapeTrai },
+  { name: 'acma',          fn: scrapeAcma },
 ];
 
 /**

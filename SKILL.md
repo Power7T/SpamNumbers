@@ -1,6 +1,6 @@
 ---
 name: spam-numbers
-description: "Scan public internet sources for spam caller databases, store numbers with metadata in a local SQLite database, and look up whether any phone number is flagged as spam. Sources include FTC, 800notes, Should I Answer, YouMail, SkipCalls, WhoCallsMe, and GitHub community lists. No API keys required."
+description: "Scan public internet sources worldwide for spam caller databases, store numbers with metadata in a local SQLite database, and look up whether any phone number is flagged as spam across USA, UK, India, Australia, and more. Sources include FTC, 800notes, Should I Answer, YouMail, SkipCalls, WhoCallsMe, GitHub community lists, OFCOM, TRAI, and ACMA registries. No API keys required."
 metadata:
   openclaw:
     emoji: "📵"
@@ -11,7 +11,7 @@ metadata:
 
 # Spam Numbers Skill
 
-Maintain a local database of spam phone numbers collected from 8 free public sources. Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
+Maintain a local database of spam phone numbers collected from 12+ free public sources worldwide (USA, UK, India, Australia, and more). Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
 
 ## When to USE This Skill
 
@@ -49,9 +49,15 @@ node scripts/index.js lookup <phone_number>
 
 Examples:
 ```bash
+# US numbers
 node scripts/index.js lookup 8005551234
 node scripts/index.js lookup +18005551234
 node scripts/index.js lookup "800-555-1234"
+
+# International numbers
+node scripts/index.js lookup +441632960000    # UK
+node scripts/index.js lookup +919876543210    # India
+node scripts/index.js lookup +61212345678     # Australia
 ```
 
 Output example:
@@ -102,7 +108,9 @@ node scripts/index.js schedule
 
 Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this process running in the background.
 
-## Data Sources (8 total, all free)
+## Data Sources (12+ total, all free & public)
+
+**US Sources (8):**
 
 | Source | Type | Notes |
 |--------|------|-------|
@@ -113,7 +121,16 @@ Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this 
 | YouMail Robocall Index | HTML scraping | Monthly top robocallers |
 | SkipCalls.net | HTML scraping | 1M+ spam numbers, no auth |
 | WhoCallsMe.com | HTML scraping | US crowdsourced reports |
-| GitHub Lists | Direct download | Community-maintained blocklists |
+| GitHub Lists (US) | Direct download | Community-maintained blocklists |
+
+**International Sources (4+):**
+
+| Source | Region | Type | Notes |
+|--------|--------|------|-------|
+| GitHub Lists (International) | UK, India, Australia, EU | CSV/TXT | Global community blocklists |
+| OFCOM | UK | Public registry | Official UK telecom regulator |
+| TRAI | India | Public registry | Indian telecom regulatory authority |
+| ACMA | Australia | Public database | Australian communications regulator |
 
 ## Notes
 

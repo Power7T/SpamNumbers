@@ -12,14 +12,21 @@ const { normalizePhone } = require('../normalizer');
 const SOURCE = 'github';
 
 // Community-maintained spam number list files (raw GitHub URLs)
+// Organized by region for proper country attribution
 const RAW_URLS = [
-  // jwoertink/blocked-numbers — 800+ robocall entries, format: +1XXXXXXXXXX,CallerName
+  // US Sources
   {
     url: 'https://raw.githubusercontent.com/jwoertink/blocked-numbers/master/list.csv',
     hasHeader: false,
     phoneCol: 0,
     notesCol: 1,
+    country: 'US',
   },
+  // International Sources (placeholder URLs - expand as public lists become available)
+  // Note: These URLs are examples. In production, use verified public blocklists:
+  // - GitHub topic search: github.com/topics/spam-blocklist
+  // - Public government registries when available in machine-readable format
+  // - Community-maintained blocklists with permissive licenses
 ];
 
 /**
@@ -78,12 +85,42 @@ function parseBody(srcConfig, body) {
     .filter(({ raw }) => looksLikePhone(raw));
 }
 
+/**
+ * Detect country from phone number prefix (E.164 format)
+ * Returns the likely country code or the configured country
+ */
+function detectCountry(phone, configCountry) {
+  if (!phone || !phone.startsWith('+')) return configCountry || 'US';
+
+  const countryCode = phone.slice(1, phone.length).match(/^\d+/)[0];
+
+  // Common country code mappings
+  const countryMap = {
+    '1': 'US',
+    '44': 'UK',
+    '91': 'India',
+    '61': 'Australia',
+    '33': 'France',
+    '49': 'Germany',
+    '39': 'Italy',
+    '34': 'Spain',
+    '31': 'Netherlands',
+    '32': 'Belgium',
+  };
+
+  // If we have a specific config country, prefer it
+  if (configCountry && configCountry !== 'Global') return configCountry;
+
+  // Otherwise detect from prefix
+  return countryMap[countryCode] || 'International';
+}
+
 async function scrapeGithubLists() {
   const records = [];
   const seen = new Set();
 
   for (const srcConfig of RAW_URLS) {
-    const { url } = srcConfig;
+    const { url, country: configCountry } = srcConfig;
     const body = await fetchText(url, { timeout: 10000 });
 
     if (!body) {
@@ -99,16 +136,18 @@ async function scrapeGithubLists() {
       if (!phone || seen.has(phone)) continue;
       seen.add(phone);
 
+      const detectedCountry = detectCountry(phone, configCountry);
+
       records.push({
         phone_number: phone,
         source: SOURCE,
         spam_score: 5,
         call_type: 'other',
-        country: 'US',
+        country: detectedCountry,
         report_count: 1,
         user_notes: notes || '',
         date_first_seen: new Date().toISOString(),
-        raw_data: JSON.stringify({ url }),
+        raw_data: JSON.stringify({ url, configCountry }),
       });
       addedFromUrl++;
     }
