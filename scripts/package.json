@@ -1,0 +1,23 @@
+{
+  "name": "spam-numbers",
+  "version": "1.0.0",
+  "description": "Scrapes and stores spam caller data from 8 public sources into a local SQLite database",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node index.js scrape",
+    "export": "node index.js export",
+    "schedule": "node index.js schedule",
+    "stats": "node index.js stats"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "cheerio": "^1.0.0",
+    "csv-stringify": "^6.4.6",
+    "libphonenumber-js": "^1.11.4",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

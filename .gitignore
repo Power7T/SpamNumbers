@@ -1,0 +1,8 @@
+node_modules/
+scripts/node_modules/
+scripts/data/
+scripts/exports/
+*.db
+*.db-shm
+*.db-wal
+.env
