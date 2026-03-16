@@ -29,35 +29,53 @@ const CALL_TYPE_MAP = [
 
 /**
  * Normalize a raw phone string to E.164 format (e.g. "+15551234567").
+ * Supports international numbers from any country.
  * Returns null if the string cannot be parsed as a valid phone number.
  */
-function normalizePhone(raw) {
+function normalizePhone(raw, defaultCountry) {
   if (!raw) return null;
 
   const str = String(raw).trim();
 
-  // Try libphonenumber-js first (handles most US formats)
   try {
-    if (isValidPhoneNumber(str, 'US')) {
-      const parsed = parsePhoneNumber(str, 'US');
-      return parsed.format('E.164');
+    // 1. If it already starts with '+', try parsing as international (no country hint)
+    if (str.startsWith('+')) {
+      if (isValidPhoneNumber(str)) {
+        return parsePhoneNumber(str).format('E.164');
+      }
     }
-    // Try adding country code if missing
-    const withPlus = str.startsWith('+') ? str : `+1${str.replace(/\D/g, '')}`;
-    if (isValidPhoneNumber(withPlus)) {
-      const parsed = parsePhoneNumber(withPlus);
-      return parsed.format('E.164');
+
+    // 2. Try with explicit default country if provided (e.g. 'GB', 'FR', 'IN')
+    if (defaultCountry && isValidPhoneNumber(str, defaultCountry)) {
+      return parsePhoneNumber(str, defaultCountry).format('E.164');
+    }
+
+    // 3. Try as US number (backward compatible for US-focused scrapers)
+    if (isValidPhoneNumber(str, 'US')) {
+      return parsePhoneNumber(str, 'US').format('E.164');
+    }
+
+    // 4. Try prepending '+' in case digits include country code but lack the plus
+    const digits = str.replace(/\D/g, '');
+    if (digits.length >= 10 && digits.length <= 15) {
+      const withPlus = `+${digits}`;
+      if (isValidPhoneNumber(withPlus)) {
+        return parsePhoneNumber(withPlus).format('E.164');
+      }
+    }
+
+    // 5. US fallback: bare 10-digit number → assume US
+    if (digits.length === 10) {
+      const usNumber = `+1${digits}`;
+      if (isValidPhoneNumber(usNumber)) {
+        return parsePhoneNumber(usNumber).format('E.164');
+      }
     }
   } catch (_) {
-    // fall through to manual normalization
+    // fall through
   }
 
-  // Manual fallback: strip non-digits
-  const digits = str.replace(/\D/g, '');
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits[0] === '1') return `+${digits}`;
-
-  return null; // can't be a valid US phone number
+  return null;
 }
 
 /**

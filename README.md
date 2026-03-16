@@ -1,46 +1,48 @@
 # SpamNumbers
 
-An [OpenClaw](https://openclaw.ai) skill that automatically collects, stores, and queries spam phone number data from 12+ free public sources worldwide — no API keys required.
+An [OpenClaw](https://openclaw.ai) skill that collects, stores, and queries spam phone number data from 10 free public sources — no API keys required. Covers US, UK, France/EU with online API fallback for international lookups.
 
 ## What It Does
 
-- Scans 12+ public spam caller databases (USA, UK, India, Australia, and more) and stores numbers locally in SQLite
-- Supports worldwide phone numbers in E.164 format
+- Scans 10 public spam caller databases and stores numbers locally in SQLite
+- Supports worldwide phone numbers in E.164 format (190+ countries)
+- Falls back to SkipCalls API for numbers not in the local database
 - Deduplicates numbers automatically, merging data from multiple sources
 - Runs weekly in the background via cron scheduler
 - Exports to CSV for use in your own applications
 - Works via any OpenClaw channel: Telegram, WhatsApp, Slack, Discord, etc.
 
-## Data Sources (12+ total, all free & public)
+## Data Sources (all free, public data only)
 
-**US Sources (8):**
-
-| Source | Method |
-|--------|--------|
-| [FTC Do Not Call Registry](https://api.ftc.gov/v0/dnc-complaints) | Public REST API |
-| [800notes.com](https://800notes.com) | HTML scraping |
-| [Should I Answer](https://www.shouldianswer.com) | HTML scraping |
-| [SpamCalls.net](https://www.spamcalls.net) | HTML scraping |
-| [YouMail Robocall Index](https://robocallindex.com) | HTML scraping |
-| [SkipCalls.net](https://skipcalls.com) | HTML scraping |
-| [WhoCallsMe.com](https://www.whocallsme.com) | HTML scraping |
-| GitHub community blocklists | Direct file download |
-
-**International Sources (4+):**
+**Bulk Scrapers (local database):**
 
 | Source | Region | Method |
 |--------|--------|--------|
-| [GitHub blocklists](https://github.com/topics/blocklist) | UK, India, Australia, EU | CSV/TXT files |
-| OFCOM | UK | Public registry |
-| TRAI | India | Public registry |
-| ACMA | Australia | Public database |
+| [FTC Do Not Call Registry](https://api.ftc.gov/v0/dnc-complaints) | US | Public REST API |
+| [800notes.com](https://800notes.com) | US | HTML scraping |
+| [Should I Answer](https://www.shouldianswer.com) | US/International | HTML scraping |
+| [SpamCalls.net](https://www.spamcalls.net) | US/International | HTML scraping |
+| [YouMail Robocall Index](https://robocallindex.com) | US | HTML scraping |
+| [SkipCalls.net](https://skipcalls.com) | International | HTML scraping |
+| [WhoCallsMe.com](https://www.whocallsme.com) | US | HTML scraping |
+| [jwoertink/blocked-numbers](https://github.com/jwoertink/blocked-numbers) | US | GitHub CSV |
+| [Oros42/phone-blacklist](https://github.com/Oros42/phone-blacklist) | France/EU | GitHub CSV |
+| [bretmlw/uk-phone-scam-numbers](https://github.com/bretmlw/uk-phone-scam-numbers) | UK | GitHub TXT |
+
+**Online Lookup Fallback:**
+
+| Source | Region | Method |
+|--------|--------|--------|
+| [SkipCalls API](https://skipcalls.com) | International (1M+ numbers) | Free REST API |
+
+When looking up a number, the tool first checks the local database. If not found, it queries the SkipCalls API for broader international coverage.
 
 ## Data Collected Per Number
 
 - Phone number (normalized to E.164)
 - Spam score (0–10)
 - Call type (robocall / telemarketer / scam / debt_collector / other)
-- Country
+- Country (detected from phone prefix or source metadata)
 - Source(s)
 - Report count
 - User notes and comments
@@ -63,8 +65,6 @@ This script will:
 
 ### Manual Installation
 
-If you prefer to install manually:
-
 ```bash
 # Copy to OpenClaw workspace
 cp -r /home/user/SpamNumbers ~/.openclaw/workspace/skills/spam-numbers
@@ -85,9 +85,11 @@ cd scripts
 # Run all scrapers now
 node index.js scrape
 
-# Check if a number is spam
-node index.js lookup 8005551234
-node index.js lookup "+1 (800) 555-1234"
+# Check if a number is spam (any country)
+node index.js lookup 8005551234           # US
+node index.js lookup +442382280715        # UK
+node index.js lookup +33178569561         # France
+node index.js lookup +919876543210        # India
 
 # Export to CSV
 node index.js export
@@ -105,33 +107,27 @@ node index.js schedule
 Once installed, just message your bot on any channel:
 
 - *"Is 800-555-1234 spam?"*
-- *"Check this number for me: +1 (555) 867-5309"*
+- *"Check +44 20 7946 0958 for me"*
+- *"Is +33178569561 a scam number?"*
 - *"Run a spam scan now"*
 - *"Export my spam list to CSV"*
 - *"Show spam database stats"*
-- *"Start the weekly spam updater"*
 
-## CSV Export Columns
+## Coverage
 
-```
-phone_number, spam_score, call_type, country, report_count, sources, user_notes, date_first_seen, date_last_updated
-```
+| Region | Local DB | Online Fallback |
+|--------|----------|-----------------|
+| US | Strong (8 scrapers) | Yes |
+| UK | Good (GitHub blocklist) | Yes |
+| France/EU | Good (GitHub blocklist) | Yes |
+| Other countries | Via phone format only | Yes (SkipCalls API) |
 
-## Worldwide Support
-
-Phone numbers are normalized to [E.164 format](https://en.wikipedia.org/wiki/E.164), supporting:
-- 🇺🇸 USA: `+1XXXXXXXXXX`
-- 🇬🇧 UK: `+44XXXXXXXXXX`
-- 🇮🇳 India: `+91XXXXXXXXXX`
-- 🇦🇺 Australia: `+61XXXXXXXXXX`
-- And 190+ other countries
-
-A single number can have reports from multiple countries, with metadata tracking which country reported each entry.
+**Phone normalization** supports all 190+ countries (E.164 format). The local database has the strongest coverage for US/UK/EU. For other countries, the SkipCalls API provides broader but less comprehensive coverage.
 
 ## Notes
 
 - **Calls only** — no SMS numbers
-- **Public data only** — all sources respect ToS and robots.txt
+- **Public data only** — all sources are free and respect ToS
 - If a source is blocked or unavailable, the scan continues with remaining sources
 - Database stored at `scripts/data/spam_numbers.db` (SQLite)
 - CSV exports saved to `scripts/exports/`

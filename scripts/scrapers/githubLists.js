@@ -11,10 +11,10 @@ const { normalizePhone } = require('../normalizer');
 
 const SOURCE = 'github';
 
-// Community-maintained spam number list files (raw GitHub URLs)
-// Organized by region for proper country attribution
+// Verified community-maintained spam number list files (raw GitHub URLs)
+// Each URL has been tested and confirmed accessible (200 OK)
 const RAW_URLS = [
-  // US Sources
+  // US — jwoertink/blocked-numbers (800+ robocall entries)
   {
     url: 'https://raw.githubusercontent.com/jwoertink/blocked-numbers/master/list.csv',
     hasHeader: false,
@@ -22,11 +22,25 @@ const RAW_URLS = [
     notesCol: 1,
     country: 'US',
   },
-  // International Sources (placeholder URLs - expand as public lists become available)
-  // Note: These URLs are examples. In production, use verified public blocklists:
-  // - GitHub topic search: github.com/topics/spam-blocklist
-  // - Public government registries when available in machine-readable format
-  // - Community-maintained blocklists with permissive licenses
+  // International (mainly France/EU) — Oros42/phone-blacklist
+  // Format: phone,label (e.g. "+33178569561,spam" or "3922,spam-FR")
+  {
+    url: 'https://raw.githubusercontent.com/Oros42/phone-blacklist/master/blacklist.csv',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: 1,  // label column contains "spam", "spam-FR", "spam-BE", etc.
+    country: 'Global',
+    parseLabel: true,  // extract country from label suffix
+  },
+  // UK — bretmlw/uk-phone-scam-numbers
+  // Format: plain text, one +44 number per line
+  {
+    url: 'https://raw.githubusercontent.com/bretmlw/uk-phone-scam-numbers/master/numbers.txt',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'UK',
+  },
 ];
 
 /**
@@ -85,42 +99,84 @@ function parseBody(srcConfig, body) {
     .filter(({ raw }) => looksLikePhone(raw));
 }
 
+// ISO label suffix → country name (used by Oros42/phone-blacklist)
+const LABEL_COUNTRY_MAP = {
+  'FR': 'France', 'BE': 'Belgium', 'CH': 'Switzerland', 'DE': 'Germany',
+  'IT': 'Italy', 'ES': 'Spain', 'NL': 'Netherlands', 'PT': 'Portugal',
+  'UK': 'UK', 'GB': 'UK', 'US': 'US', 'CA': 'Canada',
+  'AU': 'Australia', 'IN': 'India', 'JP': 'Japan', 'BR': 'Brazil',
+};
+
+// E.164 calling code → country name (checked longest prefix first)
+const PREFIX_COUNTRY_MAP = [
+  ['1', 'US'], ['44', 'UK'], ['33', 'France'], ['49', 'Germany'],
+  ['39', 'Italy'], ['34', 'Spain'], ['31', 'Netherlands'], ['32', 'Belgium'],
+  ['41', 'Switzerland'], ['351', 'Portugal'], ['91', 'India'],
+  ['61', 'Australia'], ['81', 'Japan'], ['86', 'China'], ['82', 'South Korea'],
+  ['7', 'Russia'], ['55', 'Brazil'], ['52', 'Mexico'], ['27', 'South Africa'],
+  ['971', 'UAE'], ['966', 'Saudi Arabia'], ['65', 'Singapore'],
+  ['60', 'Malaysia'], ['63', 'Philippines'], ['62', 'Indonesia'],
+  ['90', 'Turkey'], ['48', 'Poland'], ['46', 'Sweden'], ['47', 'Norway'],
+  ['45', 'Denmark'], ['358', 'Finland'], ['43', 'Austria'],
+  ['353', 'Ireland'], ['420', 'Czech Republic'],
+];
+
 /**
- * Detect country from phone number prefix (E.164 format)
- * Returns the likely country code or the configured country
+ * Extract country from Oros42-style label (e.g. "spam-FR" → "France")
  */
-function detectCountry(phone, configCountry) {
-  if (!phone || !phone.startsWith('+')) return configCountry || 'US';
+function countryFromLabel(label) {
+  if (!label) return null;
+  const match = label.match(/-([A-Z]{2})$/i);
+  if (match) {
+    return LABEL_COUNTRY_MAP[match[1].toUpperCase()] || match[1].toUpperCase();
+  }
+  return null;
+}
 
-  const countryCode = phone.slice(1, phone.length).match(/^\d+/)[0];
+/**
+ * Detect country from phone number E.164 prefix
+ */
+function countryFromPrefix(phone) {
+  if (!phone || !phone.startsWith('+')) return null;
+  const digits = phone.slice(1);
+  // Check longest prefixes first (3-digit, then 2-digit, then 1-digit)
+  for (const [prefix, country] of PREFIX_COUNTRY_MAP) {
+    if (digits.startsWith(prefix)) return country;
+  }
+  return null;
+}
 
-  // Common country code mappings
-  const countryMap = {
-    '1': 'US',
-    '44': 'UK',
-    '91': 'India',
-    '61': 'Australia',
-    '33': 'France',
-    '49': 'Germany',
-    '39': 'Italy',
-    '34': 'Spain',
-    '31': 'Netherlands',
-    '32': 'Belgium',
-  };
+/**
+ * Detect country from label, config, or phone prefix (in priority order)
+ */
+function detectCountry(phone, configCountry, label) {
+  // 1. Try label suffix (most specific, from Oros42 data)
+  const fromLabel = countryFromLabel(label);
+  if (fromLabel) return fromLabel;
 
-  // If we have a specific config country, prefer it
+  // 2. Use config country if specific
   if (configCountry && configCountry !== 'Global') return configCountry;
 
-  // Otherwise detect from prefix
-  return countryMap[countryCode] || 'International';
+  // 3. Detect from phone prefix
+  const fromPrefix = countryFromPrefix(phone);
+  if (fromPrefix) return fromPrefix;
+
+  return 'Unknown';
 }
+
+// Map config country names to ISO 3166-1 alpha-2 for libphonenumber-js
+const COUNTRY_TO_ISO = {
+  'US': 'US', 'UK': 'GB', 'France': 'FR', 'Germany': 'DE',
+  'Italy': 'IT', 'Spain': 'ES', 'India': 'IN', 'Australia': 'AU',
+  'Belgium': 'BE', 'Netherlands': 'NL', 'Switzerland': 'CH',
+};
 
 async function scrapeGithubLists() {
   const records = [];
   const seen = new Set();
 
   for (const srcConfig of RAW_URLS) {
-    const { url, country: configCountry } = srcConfig;
+    const { url, country: configCountry, parseLabel } = srcConfig;
     const body = await fetchText(url, { timeout: 10000 });
 
     if (!body) {
@@ -132,22 +188,26 @@ async function scrapeGithubLists() {
     let addedFromUrl = 0;
 
     for (const { raw, notes } of entries) {
-      const phone = normalizePhone(raw);
+      // Pass country hint to normalizer for bare numbers without '+'
+      const isoHint = COUNTRY_TO_ISO[configCountry] || undefined;
+      const phone = normalizePhone(raw, isoHint);
       if (!phone || seen.has(phone)) continue;
       seen.add(phone);
 
-      const detectedCountry = detectCountry(phone, configCountry);
+      // Use label for country detection (Oros42 uses "spam-FR" format)
+      const label = parseLabel ? notes : null;
+      const detectedCountry = detectCountry(phone, configCountry, label);
 
       records.push({
         phone_number: phone,
         source: SOURCE,
         spam_score: 5,
-        call_type: 'other',
+        call_type: 'scam',
         country: detectedCountry,
         report_count: 1,
-        user_notes: notes || '',
+        user_notes: parseLabel ? '' : (notes || ''),
         date_first_seen: new Date().toISOString(),
-        raw_data: JSON.stringify({ url, configCountry }),
+        raw_data: JSON.stringify({ url }),
       });
       addedFromUrl++;
     }

@@ -19,6 +19,7 @@ const { normalizePhone } = require('./normalizer');
 const { runAll } = require('./orchestrator');
 const { exportToCsv } = require('./exporter');
 const { startScheduler } = require('./scheduler');
+const { fetchText } = require('./scrapers/base');
 
 process.on('unhandledRejection', (reason) => {
   console.error('[fatal] Unhandled rejection:', reason);
@@ -29,28 +30,66 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
+/**
+ * Check SkipCalls free API as a fallback for numbers not in the local DB.
+ * Returns a formatted string or null if not found / API unavailable.
+ */
+async function checkSkipCallsApi(phone) {
+  try {
+    // Strip '+' for the API call
+    const digits = phone.replace('+', '');
+    const url = `https://spam.skipcalls.app/check/${digits}`;
+    const body = await fetchText(url, { timeout: 8000 });
+    if (!body) return null;
+
+    const data = JSON.parse(body);
+    if (!data || data.spam === false || data.spam === undefined) return null;
+
+    if (data.spam === true || data.isSpam === true || data.score > 0) {
+      const score = data.score || data.spamScore || 'N/A';
+      const type = data.type || data.category || 'unknown';
+      const reports = data.reports || data.reportCount || 0;
+      return [
+        `📵 ${phone} — SPAM (via SkipCalls API)`,
+        `  Score: ${score} | Type: ${type} | Reports: ${reports}`,
+        `  Note: This number was not in the local database but was found via online lookup.`,
+        `  Run "node index.js scrape" to update your local database.`,
+      ].join('\n');
+    }
+
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function printHelp() {
   console.log(`
-spam-numbers — OpenClaw skill for collecting spam caller data
+spam-numbers — OpenClaw skill for collecting worldwide spam caller data
 
 USAGE
   node index.js <command> [options]
 
 COMMANDS
-  scrape              Fetch fresh data from all 8 sources and store in DB
-  lookup <number>     Check if a phone number is flagged as spam
+  scrape              Fetch fresh data from all sources and store in DB
+  lookup <number>     Check if a phone number is flagged as spam (local DB + online API)
   export [filename]   Export the full database to CSV
   schedule            Start the weekly auto-scheduler (long-running)
   stats               Show database statistics
 
 EXAMPLES
   node index.js scrape
-  node index.js lookup 8005551234
-  node index.js lookup "+1 (800) 555-1234"
+  node index.js lookup 8005551234          # US number
+  node index.js lookup "+44 20 7946 0958"  # UK number
+  node index.js lookup +33178569561        # French number
+  node index.js lookup +919876543210       # Indian number
   node index.js export
-  node index.js export my_spam_list.csv
   node index.js stats
   node index.js schedule
+
+COVERAGE
+  Local DB: US (8 scrapers), UK & France/EU (GitHub blocklists)
+  Online fallback: SkipCalls API (international, 1M+ numbers)
 `);
 }
 
@@ -149,7 +188,17 @@ async function main() {
           process.exit(1);
         }
         const row = lookupNumber(db, phone);
-        console.log(formatLookupResult(row, phone));
+        if (row) {
+          console.log(formatLookupResult(row, phone));
+        } else {
+          // Fallback: check SkipCalls free API for international coverage
+          const apiResult = await checkSkipCallsApi(phone);
+          if (apiResult) {
+            console.log(apiResult);
+          } else {
+            console.log(formatLookupResult(null, phone));
+          }
+        }
         break;
       }
 

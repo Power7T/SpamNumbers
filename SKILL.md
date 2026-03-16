@@ -1,6 +1,6 @@
 ---
 name: spam-numbers
-description: "Scan public internet sources worldwide for spam caller databases, store numbers with metadata in a local SQLite database, and look up whether any phone number is flagged as spam across USA, UK, India, Australia, and more. Sources include FTC, 800notes, Should I Answer, YouMail, SkipCalls, WhoCallsMe, GitHub community lists, OFCOM, TRAI, and ACMA registries. No API keys required."
+description: "Scan public internet sources for spam caller databases, store numbers with metadata in a local SQLite database, and look up whether any phone number is flagged as spam. Covers US, UK, France/EU via local scrapers plus international lookup via SkipCalls API. Sources include FTC, 800notes, Should I Answer, YouMail, SkipCalls, WhoCallsMe, and verified GitHub community lists. No API keys required."
 metadata:
   openclaw:
     emoji: "📵"
@@ -11,17 +11,17 @@ metadata:
 
 # Spam Numbers Skill
 
-Maintain a local database of spam phone numbers collected from 12+ free public sources worldwide (USA, UK, India, Australia, and more). Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
+Maintain a local database of spam phone numbers collected from 10 free public sources (US, UK, France/EU). Numbers not in the local database are checked against the SkipCalls API for broader international coverage. Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
 
 ## When to USE This Skill
 
 ✅ Use this skill when the user:
-- Asks if a phone number is spam / scam / robocall (e.g. "is 800-555-1234 spam?", "check this number for me")
+- Asks if a phone number is spam / scam / robocall (e.g. "is 800-555-1234 spam?", "check +44 20 7946 0958")
 - Wants to scan and update the spam database from all sources
 - Wants to export the spam number list to a CSV file
 - Wants to see statistics about the spam database
 - Wants to start the automatic weekly update scheduler
-- Asks about known scam or robocall numbers
+- Asks about known scam or robocall numbers from any country
 
 ## When NOT to Use This Skill
 
@@ -29,7 +29,6 @@ Maintain a local database of spam phone numbers collected from 12+ free public s
 - SMS/text message spam (calls only)
 - Real-time carrier data or live call blocking
 - Services requiring payment or API keys
-- Non-US numbers (primarily US database)
 
 ## Setup (first time)
 
@@ -47,17 +46,15 @@ cd scripts && npm install
 node scripts/index.js lookup <phone_number>
 ```
 
+Supports any country's phone number format. Checks local DB first, then SkipCalls API as fallback.
+
 Examples:
 ```bash
-# US numbers
-node scripts/index.js lookup 8005551234
-node scripts/index.js lookup +18005551234
-node scripts/index.js lookup "800-555-1234"
-
-# International numbers
-node scripts/index.js lookup +441632960000    # UK
+node scripts/index.js lookup 8005551234       # US
+node scripts/index.js lookup +18005551234     # US (E.164)
+node scripts/index.js lookup +442382280715    # UK
+node scripts/index.js lookup +33178569561     # France
 node scripts/index.js lookup +919876543210    # India
-node scripts/index.js lookup +61212345678     # Australia
 ```
 
 Output example:
@@ -69,18 +66,25 @@ Output example:
   Notes: IRS impersonation scam | Fake warranty calls
 ```
 
-If not found:
+If not found locally but found via API:
 ```
-✅ +18005551234 — Not in spam database
+📵 +919876543210 — SPAM (via SkipCalls API)
+  Score: 7 | Type: telemarketer | Reports: 42
+  Note: This number was not in the local database but was found via online lookup.
 ```
 
-### Run a full scan (all 8 sources)
+If not found:
+```
+✅ +18005551234 — Not found in spam database
+```
+
+### Run a full scan
 
 ```bash
 node scripts/index.js scrape
 ```
 
-Fetches fresh data from all sources. Safe to run anytime — each source is isolated so one failure won't stop the rest.
+Fetches fresh data from all 10 sources. Safe to run anytime — each source is isolated so one failure won't stop the rest.
 
 ### Export to CSV
 
@@ -108,33 +112,26 @@ node scripts/index.js schedule
 
 Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this process running in the background.
 
-## Data Sources (12+ total, all free & public)
+## Data Sources (10 scrapers + 1 API, all free & public)
 
-**US Sources (8):**
-
-| Source | Type | Notes |
-|--------|------|-------|
-| FTC DNC API | REST API | Official US govt complaint data |
-| 800notes.com | HTML scraping | Crowdsourced user reports |
-| Should I Answer | HTML scraping | Rated phone number database |
-| SpamCalls.net | HTML scraping | Handles Cloudflare gracefully |
-| YouMail Robocall Index | HTML scraping | Monthly top robocallers |
-| SkipCalls.net | HTML scraping | 1M+ spam numbers, no auth |
-| WhoCallsMe.com | HTML scraping | US crowdsourced reports |
-| GitHub Lists (US) | Direct download | Community-maintained blocklists |
-
-**International Sources (4+):**
-
-| Source | Region | Type | Notes |
-|--------|--------|------|-------|
-| GitHub Lists (International) | UK, India, Australia, EU | CSV/TXT | Global community blocklists |
-| OFCOM | UK | Public registry | Official UK telecom regulator |
-| TRAI | India | Public registry | Indian telecom regulatory authority |
-| ACMA | Australia | Public database | Australian communications regulator |
+| Source | Region | Type |
+|--------|--------|------|
+| FTC DNC API | US | REST API |
+| 800notes.com | US | HTML scraping |
+| Should I Answer | US/International | HTML scraping |
+| SpamCalls.net | US/International | HTML scraping |
+| YouMail Robocall Index | US | HTML scraping |
+| SkipCalls.net | International | HTML scraping |
+| WhoCallsMe.com | US | HTML scraping |
+| jwoertink/blocked-numbers | US | GitHub CSV |
+| Oros42/phone-blacklist | France/EU | GitHub CSV |
+| bretmlw/uk-phone-scam-numbers | UK | GitHub TXT |
+| SkipCalls API (lookup fallback) | International | Free REST API |
 
 ## Notes
 
 - Database is stored at `scripts/data/spam_numbers.db` (SQLite)
 - If a source is blocked or down, the scan continues with remaining sources
 - Duplicate numbers across sources are automatically merged (scores combined)
-- Phone numbers are normalized to E.164 format (+1XXXXXXXXXX for US)
+- Phone numbers are normalized to E.164 format for any country
+- Country is auto-detected from phone number prefix
