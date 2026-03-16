@@ -25,7 +25,7 @@ echo ""
 # Step 2: Copy project with absolute path
 echo "📦 Step 2: Copying SpamNumbers project..."
 SKILL_DIR="$OPENCLAW_SKILLS_DIR/spam-numbers"
-SOURCE_DIR="/home/user/SpamNumbers"
+SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ ! -d "$SOURCE_DIR" ]; then
     echo "   ❌ Source directory not found: $SOURCE_DIR"

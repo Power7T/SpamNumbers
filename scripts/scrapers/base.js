@@ -62,16 +62,24 @@ async function fetchHtml(url) {
 
 /**
  * Fetch a URL and return the response body as text.
- * Returns null if blocked or errored.
+ * Returns null if blocked or errored. Retries once on network failure.
  */
 async function fetchText(url, options = {}) {
-  try {
-    const res = await fetchWithHeaders(url, options);
-    if (!res.ok) return null;
-    return await res.text();
-  } catch (_) {
-    return null;
+  const maxAttempts = options.retries || 1;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const res = await fetchWithHeaders(url, options);
+      if (!res.ok) return null;
+      return await res.text();
+    } catch (_) {
+      if (attempt < maxAttempts - 1) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      return null;
+    }
   }
+  return null;
 }
 
 /**
