@@ -1,6 +1,6 @@
 ---
 name: spam-numbers
-description: "Scan public internet sources for spam caller databases, store numbers with metadata in a local SQLite database, and look up whether any phone number is flagged as spam. Covers US, UK, France/EU via local scrapers plus international lookup via SkipCalls API. Sources include FTC, 800notes, Should I Answer, YouMail, SkipCalls, WhoCallsMe, and verified GitHub community lists. No API keys required."
+description: "Scan public internet sources for spam caller databases, store numbers with metadata in a local SQLite database, and look up whether any phone number is flagged as spam. Covers US, UK, France/EU, and global numbers via local scrapers plus international lookup via SkipCalls API. Sources include FTC, 800notes, Should I Answer, YouMail, SkipCalls, WhoCallsMe, CallerCenter, Nomorobo, and verified GitHub community lists. No API keys required."
 metadata:
   openclaw:
     emoji: "📵"
@@ -12,7 +12,7 @@ metadata:
 
 # Spam Numbers Skill
 
-Maintain a local database of spam phone numbers collected from 10 free public sources (US, UK, France/EU). Numbers not in the local database are checked against the SkipCalls API for broader international coverage. Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
+Maintain a local database of spam phone numbers collected from 14 free public sources (US, UK, France/EU, Global). Numbers not in the local database are checked against the SkipCalls API for broader international coverage. Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
 
 ## When to Use
 
@@ -92,7 +92,7 @@ Check multiple numbers from a text file (one per line).
 node scripts/index.js scrape
 ```
 
-Fetches fresh data from all 10 sources. Safe to run anytime — each source is isolated so one failure won't stop the rest.
+Fetches fresh data from all 14 sources. Safe to run anytime — each source is isolated so one failure won't stop the rest.
 
 ### Export to CSV
 
@@ -128,7 +128,7 @@ node scripts/index.js schedule
 
 Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this process running in the background.
 
-## Data Sources (10 scrapers + 1 API, all free & public)
+## Data Sources (14 scrapers + 1 API, all free & public)
 
 | Source | Region | Type | Weight |
 |--------|--------|------|--------|
@@ -138,10 +138,15 @@ Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this 
 | YouMail Robocall Index | US | HTML scraping | 0.6 |
 | SkipCalls.net | International | HTML scraping | 0.6 |
 | WhoCallsMe.com | US | HTML scraping | 0.6 |
+| CallerCenter.com | US | HTML scraping | 0.6 |
 | SpamCalls.net | US/International | HTML scraping | 0.5 |
+| Nomorobo Top Robocallers | US | HTML scraping | 0.5 |
 | jwoertink/blocked-numbers | US | GitHub CSV | 0.4 |
 | Oros42/phone-blacklist | France/EU | GitHub CSV | 0.4 |
 | bretmlw/uk-phone-scam-numbers | UK | GitHub TXT | 0.4 |
+| greyhat-academy/lists.d | Global | GitHub TSV | 0.4 |
+| Swyter/call-spam-blocklist | Global | GitHub CSV | 0.4 |
+| sundowndev/phone-number-based-spam-list | Global | GitHub CSV | 0.4 |
 | SkipCalls API (lookup fallback) | International | Free REST API | — |
 
 ## Core Rules

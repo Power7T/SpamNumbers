@@ -1,6 +1,6 @@
 # Data Sources — Spam Numbers Skill
 
-## Local Database Scrapers (10 sources)
+## Local Database Scrapers (14 sources)
 
 | Source | Region | Method | Weight | Notes |
 |--------|--------|--------|--------|-------|
@@ -10,10 +10,15 @@
 | YouMail Robocall Index | US | HTML scraping | 0.6 | Robocall analytics |
 | SkipCalls.net | International | HTML scraping | 0.6 | Broad international coverage |
 | WhoCallsMe.com | US | HTML scraping | 0.6 | Community reports |
-| SpamCalls.net | US/Intl | HTML scraping | 0.5 | Community reports |
+| CallerCenter.com | US | HTML scraping | 0.6 | Community reverse lookup |
+| SpamCalls.net | US/Intl | HTML scraping | 0.5 | Community reports (CF-protected, may skip) |
+| Nomorobo Top Robocallers | US | HTML scraping | 0.5 | Top reported robocallers (CF-protected, may skip) |
 | jwoertink/blocked-numbers | US | GitHub CSV | 0.4 | Community blocklist |
 | Oros42/phone-blacklist | France/EU | GitHub CSV | 0.4 | French/EU community list |
 | bretmlw/uk-phone-scam-numbers | UK | GitHub TXT | 0.4 | UK community list |
+| greyhat-academy/lists.d | Global | GitHub TSV | 0.4 | International spam numbers |
+| Swyter/call-spam-blocklist | Global | GitHub CSV | 0.4 | Multi-country blocklist |
+| sundowndev/phone-number-based-spam-list | Global | GitHub CSV | 0.4 | Community blocklist |
 
 ## Online Lookup Fallback
 
@@ -29,9 +34,10 @@ Government sources (FTC) are weighted highest at 1.0. Established community site
 
 | Region | Local DB Sources | Online Fallback |
 |--------|-----------------|-----------------|
-| US | 8 scrapers | Yes |
+| US | 9 scrapers | Yes |
 | UK | 1 GitHub list | Yes |
 | France/EU | 1 GitHub list | Yes |
+| Global/Multi | 3 GitHub lists | Yes |
 | Other | Phone format only | Yes (SkipCalls API) |
 
 ## Scraping Strategy

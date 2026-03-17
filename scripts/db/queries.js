@@ -8,7 +8,9 @@ const SOURCE_WEIGHTS = {
   youmail:       0.6,
   skipcalls:     0.6,
   whocallsme:    0.6,
+  callercenter:  0.6,   // Community reverse lookup
   spamcalls:     0.5,
+  nomorobolist:  0.5,   // Nomorobo public robocall list
   github:        0.4,   // Community-maintained, less verified
 };
 

@@ -41,6 +41,42 @@ const RAW_URLS = [
     notesCol: -1,
     country: 'UK',
   },
+  // International — greyhat-academy/lists.d (TSV format)
+  // Format: phone\tnotes (tab-separated)
+  {
+    url: 'https://raw.githubusercontent.com/greyhat-academy/lists.d/main/spammers.phone.numbers.list.tsv',
+    hasHeader: true,
+    phoneCol: 0,
+    notesCol: 1,
+    country: 'Global',
+  },
+  // Multi-country blocklist — Swyter/call-spam-blocklist
+  // Format: CSV, one number per line
+  {
+    url: 'https://raw.githubusercontent.com/Swyter/call-spam-blocklist/blocklist/blocklist.csv',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // US community list — mttkay/phone-blacklist
+  // Format: plain text, one US number per line
+  {
+    url: 'https://raw.githubusercontent.com/mttkay/phone-blacklist/master/blacklist.txt',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'US',
+  },
+  // DE/EU — sundowndev/phone-number-based-spam-list
+  // Format: CSV with phone and category
+  {
+    url: 'https://raw.githubusercontent.com/sundowndev/phone-number-based-spam-list/master/spam.csv',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: 1,
+    country: 'Global',
+  },
 ];
 
 /**
@@ -105,6 +141,13 @@ const LABEL_COUNTRY_MAP = {
   'IT': 'Italy', 'ES': 'Spain', 'NL': 'Netherlands', 'PT': 'Portugal',
   'UK': 'UK', 'GB': 'UK', 'US': 'US', 'CA': 'Canada',
   'AU': 'Australia', 'IN': 'India', 'JP': 'Japan', 'BR': 'Brazil',
+  'BG': 'Bulgaria', 'RO': 'Romania', 'HU': 'Hungary', 'PL': 'Poland',
+  'SE': 'Sweden', 'NO': 'Norway', 'DK': 'Denmark', 'FI': 'Finland',
+  'AT': 'Austria', 'IE': 'Ireland', 'CZ': 'Czech Republic', 'GR': 'Greece',
+  'TR': 'Turkey', 'RU': 'Russia', 'MX': 'Mexico', 'AR': 'Argentina',
+  'ZA': 'South Africa', 'NG': 'Nigeria', 'EG': 'Egypt', 'KR': 'South Korea',
+  'SG': 'Singapore', 'MY': 'Malaysia', 'PH': 'Philippines', 'ID': 'Indonesia',
+  'AE': 'UAE', 'SA': 'Saudi Arabia', 'PK': 'Pakistan', 'BD': 'Bangladesh',
 };
 
 // E.164 calling code → country name (checked longest prefix first)
@@ -118,7 +161,13 @@ const PREFIX_COUNTRY_MAP = [
   ['60', 'Malaysia'], ['63', 'Philippines'], ['62', 'Indonesia'],
   ['90', 'Turkey'], ['48', 'Poland'], ['46', 'Sweden'], ['47', 'Norway'],
   ['45', 'Denmark'], ['358', 'Finland'], ['43', 'Austria'],
-  ['353', 'Ireland'], ['420', 'Czech Republic'],
+  ['353', 'Ireland'], ['420', 'Czech Republic'], ['359', 'Bulgaria'],
+  ['40', 'Romania'], ['36', 'Hungary'], ['30', 'Greece'],
+  ['54', 'Argentina'], ['234', 'Nigeria'], ['20', 'Egypt'],
+  ['92', 'Pakistan'], ['880', 'Bangladesh'], ['64', 'New Zealand'],
+  ['56', 'Chile'], ['57', 'Colombia'], ['58', 'Venezuela'],
+  ['380', 'Ukraine'], ['375', 'Belarus'], ['370', 'Lithuania'],
+  ['371', 'Latvia'], ['372', 'Estonia'],
 ];
 
 /**
@@ -169,6 +218,13 @@ const COUNTRY_TO_ISO = {
   'US': 'US', 'UK': 'GB', 'France': 'FR', 'Germany': 'DE',
   'Italy': 'IT', 'Spain': 'ES', 'India': 'IN', 'Australia': 'AU',
   'Belgium': 'BE', 'Netherlands': 'NL', 'Switzerland': 'CH',
+  'Bulgaria': 'BG', 'Romania': 'RO', 'Poland': 'PL', 'Sweden': 'SE',
+  'Norway': 'NO', 'Denmark': 'DK', 'Finland': 'FI', 'Austria': 'AT',
+  'Ireland': 'IE', 'Portugal': 'PT', 'Greece': 'GR', 'Turkey': 'TR',
+  'Russia': 'RU', 'Ukraine': 'UA', 'Mexico': 'MX', 'Brazil': 'BR',
+  'Argentina': 'AR', 'South Africa': 'ZA', 'Nigeria': 'NG',
+  'South Korea': 'KR', 'Singapore': 'SG', 'Malaysia': 'MY',
+  'Philippines': 'PH', 'Indonesia': 'ID', 'Pakistan': 'PK',
 };
 
 async function scrapeGithubLists() {
