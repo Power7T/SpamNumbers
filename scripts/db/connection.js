@@ -2,7 +2,20 @@
 
 const path = require('path');
 const fs = require('fs');
-const Database = require('better-sqlite3');
+let Database;
+try {
+  Database = require('better-sqlite3');
+} catch (err) {
+  console.error('\n' + '='.repeat(60));
+  console.error('📵 DATABASE COMPILATION ERROR DETECTED');
+  console.error('The native "better-sqlite3" module failed to load.');
+  console.error('');
+  console.error('TO FIX ON UBUNTU VPS:');
+  console.error('1. Install build tools: sudo apt install -y build-essential python3');
+  console.error('2. Rebuild the module:  npm install --build-from-source better-sqlite3');
+  console.error('='.repeat(60) + '\n');
+  process.exit(1);
+}
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DB_PATH = path.join(DATA_DIR, 'spam_numbers.db');
