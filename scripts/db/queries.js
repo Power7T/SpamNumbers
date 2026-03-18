@@ -33,141 +33,143 @@ function computeWeightedScore(sources) {
 }
 
 /**
- * Compute confidence level based on number of sources and total reports.
+ * Compute confidence level based on number of sources and total reports, using a logarithmic curve.
+ * This prevents a single source with fake "10,000" reports from dominating over 3 reliable sources.
  */
 function computeConfidence(sourceCount, reportCount) {
-  if (sourceCount >= 3 || reportCount >= 50) return 'high';
-  if (sourceCount >= 2 || reportCount >= 10) return 'medium';
+  // Base trust logic: The sum of sources is the highest trust indicator
+  // If reportCount is high, it supplements the confidence.
+  const score = sourceCount * 2 + Math.log10(Math.max(1, reportCount));
+  if (score >= 6) return 'high';
+  if (score >= 3) return 'medium';
   return 'low';
+}
+
+
+/**
+ * Upsert multiple scraped records into the database within a single, highly performant transaction.
+ *
+ * Returns { totalProcessed, newCount, updatedCount }
+ */
+function upsertManyFromScraper(db, records) {
+  if (!records || records.length === 0) return { totalProcessed: 0, newCount: 0, updatedCount: 0 };
+  
+  let newCount = 0;
+  let updatedCount = 0;
+
+  const checkStmt = db.prepare('SELECT 1 FROM spam_numbers WHERE phone_number = ?');
+
+  const insertSpamNumbersStmt = db.prepare(`
+    INSERT OR IGNORE INTO spam_numbers
+      (phone_number, spam_score, weighted_score, confidence, source_count, call_type, country, report_count, user_notes, date_first_seen, date_last_updated)
+    VALUES
+      (@phone_number, @spam_score, @spam_score, 'low', 1, @call_type, @country, @report_count, @user_notes, @date_first_seen, @date_last_updated)
+  `);
+
+  const insertSourcesStmt = db.prepare(`
+    INSERT INTO spam_sources
+      (phone_number, source, spam_score, report_count, user_notes, call_type, raw_data, scraped_at)
+    VALUES
+      (@phone_number, @source, @spam_score, @report_count, @user_notes, @call_type, @raw_data, @scraped_at)
+    ON CONFLICT(phone_number, source) DO UPDATE SET
+      spam_score   = MAX(spam_sources.spam_score, excluded.spam_score),
+      report_count = spam_sources.report_count + excluded.report_count,
+      user_notes   = CASE
+                       WHEN excluded.user_notes = '' THEN spam_sources.user_notes
+                       WHEN spam_sources.user_notes LIKE '%' || excluded.user_notes || '%' THEN spam_sources.user_notes
+                       WHEN spam_sources.user_notes = '' THEN excluded.user_notes
+                       ELSE spam_sources.user_notes || ' | ' || excluded.user_notes
+                     END,
+      call_type    = CASE
+                       WHEN spam_sources.call_type = 'other' THEN excluded.call_type
+                       ELSE spam_sources.call_type
+                     END,
+      scraped_at   = excluded.scraped_at
+  `);
+
+  const getAggSourcesStmt = db.prepare(`
+    SELECT source, spam_score, report_count, call_type, user_notes
+    FROM spam_sources WHERE phone_number = ?
+  `);
+
+  const updateAggStmt = db.prepare(`
+    UPDATE spam_numbers SET
+      spam_score        = @spam_score,
+      weighted_score    = @weighted_score,
+      confidence        = @confidence,
+      source_count      = @source_count,
+      call_type         = CASE WHEN spam_numbers.call_type = 'other' THEN @call_type ELSE spam_numbers.call_type END,
+      report_count      = @report_count,
+      user_notes        = @user_notes,
+      date_first_seen   = MIN(spam_numbers.date_first_seen, @date_first_seen),
+      date_last_updated = @date_last_updated
+    WHERE phone_number = @phone_number
+  `);
+
+  const txn = db.transaction((recs) => {
+    for (const record of recs) {
+      const {
+        phone_number,
+        source,
+        spam_score = 0,
+        call_type = 'other',
+        country = 'US',
+        report_count = 0,
+        user_notes = '',
+        date_first_seen,
+        raw_data = '',
+      } = record;
+
+      const now = new Date().toISOString();
+      const firstSeen = date_first_seen || now;
+
+      const existsBefore = checkStmt.get(phone_number);
+
+      insertSpamNumbersStmt.run({
+        phone_number, spam_score, call_type, country, report_count,
+        user_notes, date_first_seen: firstSeen, date_last_updated: now,
+      });
+
+      insertSourcesStmt.run({
+        phone_number, source, spam_score, report_count, user_notes,
+        call_type, raw_data, scraped_at: now,
+      });
+
+      const sourcesForNumber = getAggSourcesStmt.all(phone_number);
+
+      const aggScore = Math.max(...sourcesForNumber.map(s => s.spam_score));
+      const aggCount = sourcesForNumber.reduce((sum, s) => sum + s.report_count, 0);
+      const sourceCount = sourcesForNumber.length;
+      const weightedScore = computeWeightedScore(sourcesForNumber);
+      const confidence = computeConfidence(sourceCount, aggCount);
+
+      const callTypes = sourcesForNumber.map(s => s.call_type).filter(Boolean);
+      const bestCallType = callTypes.find(t => t !== 'other') || 'other';
+
+      const allNotes = sourcesForNumber.map(s => s.user_notes).filter(Boolean);
+      const cleanNotes = Array.from(new Set(allNotes.flatMap(n => n.split(' | ').map(s => s.trim())).filter(Boolean))).join(' | ');
+
+      updateAggStmt.run({
+        phone_number, spam_score: aggScore, weighted_score: Math.round(weightedScore * 10) / 10, confidence, source_count: sourceCount,
+        call_type: bestCallType, report_count: aggCount, user_notes: cleanNotes, date_first_seen: firstSeen, date_last_updated: now,
+      });
+
+      if (!existsBefore) newCount++;
+      else updatedCount++;
+    }
+  });
+
+  txn(records);
+  return { totalProcessed: records.length, newCount, updatedCount };
 }
 
 /**
  * Upsert a single scraped record into the database.
- * Two-step transaction:
- *   1. Upsert the per-source row in spam_sources
- *   2. Recompute the aggregate and upsert into spam_numbers
- *
- * Returns { isNew: boolean }
+ * Wrapper around upsertManyFromScraper.
  */
 function upsertFromScraper(db, record) {
-  const {
-    phone_number,
-    source,
-    spam_score = 0,
-    call_type = 'other',
-    country = 'US',
-    report_count = 0,
-    user_notes = '',
-    date_first_seen,
-    raw_data = '',
-  } = record;
-
-  const now = new Date().toISOString();
-  const firstSeen = date_first_seen || now;
-
-  const existsBefore = db
-    .prepare('SELECT 1 FROM spam_numbers WHERE phone_number = ?')
-    .get(phone_number);
-
-  const txn = db.transaction(() => {
-    // Step 1: Ensure spam_numbers row exists (needed before spam_sources due to FK)
-    db.prepare(`
-      INSERT OR IGNORE INTO spam_numbers
-        (phone_number, spam_score, weighted_score, confidence, source_count, call_type, country, report_count, user_notes, date_first_seen, date_last_updated)
-      VALUES
-        (@phone_number, @spam_score, @spam_score, 'low', 1, @call_type, @country, @report_count, @user_notes, @date_first_seen, @date_last_updated)
-    `).run({
-      phone_number,
-      spam_score,
-      call_type,
-      country,
-      report_count,
-      user_notes,
-      date_first_seen: firstSeen,
-      date_last_updated: now,
-    });
-
-    // Step 2: upsert the per-source attribution record
-    db.prepare(`
-      INSERT INTO spam_sources
-        (phone_number, source, spam_score, report_count, user_notes, call_type, raw_data, scraped_at)
-      VALUES
-        (@phone_number, @source, @spam_score, @report_count, @user_notes, @call_type, @raw_data, @scraped_at)
-      ON CONFLICT(phone_number, source) DO UPDATE SET
-        spam_score   = MAX(spam_sources.spam_score, excluded.spam_score),
-        report_count = spam_sources.report_count + excluded.report_count,
-        user_notes   = CASE
-                         WHEN excluded.user_notes = '' THEN spam_sources.user_notes
-                         WHEN spam_sources.user_notes LIKE '%' || excluded.user_notes || '%' THEN spam_sources.user_notes
-                         WHEN spam_sources.user_notes = '' THEN excluded.user_notes
-                         ELSE spam_sources.user_notes || ' | ' || excluded.user_notes
-                       END,
-        call_type    = CASE
-                         WHEN spam_sources.call_type = 'other' THEN excluded.call_type
-                         ELSE spam_sources.call_type
-                       END,
-        scraped_at   = excluded.scraped_at
-    `).run({
-      phone_number,
-      source,
-      spam_score,
-      report_count,
-      user_notes,
-      call_type,
-      raw_data,
-      scraped_at: now,
-    });
-
-    // Step 3: recompute aggregate from all sources for this number
-    const sourcesForNumber = db.prepare(`
-      SELECT source, spam_score, report_count, call_type, user_notes
-      FROM spam_sources WHERE phone_number = ?
-    `).all(phone_number);
-
-    const aggScore = Math.max(...sourcesForNumber.map(s => s.spam_score));
-    const aggCount = sourcesForNumber.reduce((sum, s) => sum + s.report_count, 0);
-    const sourceCount = sourcesForNumber.length;
-    const weightedScore = computeWeightedScore(sourcesForNumber);
-    const confidence = computeConfidence(sourceCount, aggCount);
-
-    // Prefer the most specific call_type
-    const callTypes = sourcesForNumber.map(s => s.call_type).filter(Boolean);
-    const bestCallType = callTypes.find(t => t !== 'other') || 'other';
-
-    // Clean up concatenated notes
-    const allNotes = sourcesForNumber.map(s => s.user_notes).filter(Boolean);
-    const cleanNotes = Array.from(
-      new Set(allNotes.flatMap(n => n.split(' | ').map(s => s.trim())).filter(Boolean))
-    ).join(' | ');
-
-    db.prepare(`
-      UPDATE spam_numbers SET
-        spam_score        = @spam_score,
-        weighted_score    = @weighted_score,
-        confidence        = @confidence,
-        source_count      = @source_count,
-        call_type         = CASE WHEN spam_numbers.call_type = 'other' THEN @call_type ELSE spam_numbers.call_type END,
-        report_count      = @report_count,
-        user_notes        = @user_notes,
-        date_first_seen   = MIN(spam_numbers.date_first_seen, @date_first_seen),
-        date_last_updated = @date_last_updated
-      WHERE phone_number = @phone_number
-    `).run({
-      phone_number,
-      spam_score: aggScore,
-      weighted_score: Math.round(weightedScore * 10) / 10,
-      confidence,
-      source_count: sourceCount,
-      call_type: bestCallType,
-      report_count: aggCount,
-      user_notes: cleanNotes,
-      date_first_seen: firstSeen,
-      date_last_updated: now,
-    });
-  });
-
-  txn();
-  return { isNew: !existsBefore };
+  const result = upsertManyFromScraper(db, [record]);
+  return { isNew: result.newCount > 0 };
 }
 
 /**
@@ -249,6 +251,9 @@ function decayStaleData(db, staleDays = 180, decayFactor = 0.5, deleteThreshold 
     DELETE FROM spam_sources
     WHERE phone_number NOT IN (SELECT phone_number FROM spam_numbers)
   `).run();
+
+  // Reclaim disk space
+  db.exec('VACUUM;');
 
   return { decayed: decayed.changes, deleted: deleted.changes };
 }
@@ -365,6 +370,7 @@ function finalizeRunLog(db, runId, { totalNew, totalUpdated, errors }) {
 
 module.exports = {
   upsertFromScraper,
+  upsertManyFromScraper,
   lookupNumber,
   bulkLookup,
   whitelistNumber,

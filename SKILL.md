@@ -46,6 +46,12 @@ Use this skill when the user:
 | `status` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js status` |
 | `lookup <number>` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js lookup <number>` |
 
+**CEO-Level Commands:**
+If the user asks for a high-level summary, use the `stats` command.
+Example: `@bot threat report for today` -> Run `stats` and summarize: *"I scanned 14 sources today. Found X new spam numbers... Primary scam recognized: Y..."*
+Example: `@bot analyze risk for <number>` -> Run `lookup <number>` and give a professional risk assessment (e.g. *"🚨 HIGH CONFIDENCE SPAM..."*).
+
+
 **Live Progress Tracking:**
 - When a scrape is running, if the user asks "how is it going?" or "any updates?", run the `status` command above to read the current progress log.
 - Do not wait for the main scrape to finish to report progress; you can run the `status` command independently.

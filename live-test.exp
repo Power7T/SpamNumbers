@@ -1,0 +1,53 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -t -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# 1. Start gateway fresh
+send "systemctl --user restart openclaw-gateway.service\r"
+expect "root@*#"
+sleep 15
+
+# 2. Enter TUI
+send "openclaw tui\r"
+sleep 20
+
+# 3. Trigger Scrape
+send_user "\n(ACTION: Starting Scrape...)\n"
+send "run the spam numbers scraper and skip all apis\r"
+sleep 20
+
+# 4. FIRST PROGRESS CHECK
+send_user "\n(ACTION: Checking status after 20s...)\n"
+send "how is the scrape going?\r"
+sleep 15
+
+# 5. SECOND PROGRESS CHECK
+send_user "\n(ACTION: Checking status after 35s...)\n"
+send "any more updates?\r"
+sleep 15
+
+# 6. THIRD PROGRESS CHECK
+send_user "\n(ACTION: Checking status after 50s...)\n"
+send "give me the final progress summary\r"
+
+set timeout 120
+expect {
+    "--- Latest Scrape Progress ---" { 
+        send_user "\n(SUCCESS: Live logs received from Agent!)\n"
+    }
+}
+
+sleep 30
+send "\x03"
+expect "root@*#"
+send "exit\r"
+expect eof

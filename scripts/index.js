@@ -26,8 +26,9 @@ const { getMissingFtcDates } = require('./db/queries');
 const { importFtcHistory } = require('./import-ftc-history');
 const { exportToCsv } = require('./exporter');
 const { startScheduler } = require('./scheduler');
-const { fetchText } = require('./scrapers/base');
 const { closeStealthBrowser } = require('./lib/stealth-browser');
+const { fetchText } = require('./scrapers/base');
+const { checkTruecallerHiddenApi } = require('./scrapers/truecaller');
 const path = require('path');
 const readline = require('readline');
 
@@ -298,15 +299,21 @@ async function main() {
         if (row) {
           console.log(formatLookupResult(row, phone));
         } else {
-          const apiResult = await checkSkipCallsApi(phone);
-          if (apiResult) {
-            console.log(apiResult);
+          const truecallerResult = await checkTruecallerHiddenApi(phone);
+          if (truecallerResult) {
+            console.log(truecallerResult);
           } else {
-            console.log(formatLookupResult(null, phone));
+            const apiResult = await checkSkipCallsApi(phone);
+            if (apiResult) {
+              console.log(apiResult);
+            } else {
+              console.log(formatLookupResult(null, phone));
+            }
           }
         }
         break;
       }
+
 
       case 'bulk': {
         const filePath = args[0];

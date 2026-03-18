@@ -1,10 +1,11 @@
 'use strict';
 
 const { addExtra } = require('puppeteer-extra');
-const puppeteer = addExtra(require('puppeteer-core'));
+const puppeteer = addExtra(require('puppeteer'));
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cheerio = require('cheerio');
 const fs = require('fs');
+const path = require('path');
 
 puppeteer.use(StealthPlugin());
 
@@ -15,11 +16,14 @@ let globalBrowser = null;
 async function getBrowser() {
   if (globalBrowser) return globalBrowser;
 
+  // Use system chromium ONLY if we are on Linux and it exists, else rely on downloaded puppeteer chromium bindings.
   let executablePath = undefined;
-  if (fs.existsSync('/usr/bin/chromium-browser')) {
-    executablePath = '/usr/bin/chromium-browser';
-  } else if (fs.existsSync('/usr/bin/chromium')) {
-    executablePath = '/usr/bin/chromium';
+  if (process.platform === 'linux') {
+    if (fs.existsSync('/usr/bin/chromium-browser')) {
+      executablePath = '/usr/bin/chromium-browser';
+    } else if (fs.existsSync('/usr/bin/chromium')) {
+      executablePath = '/usr/bin/chromium';
+    }
   }
 
   const launchArgs = {
@@ -35,14 +39,12 @@ async function getBrowser() {
 
   if (executablePath) {
     launchArgs.executablePath = executablePath;
-  } else {
-    // Fallback for local development (macOS/Windows) if chromium isn't in /usr/bin/
-    launchArgs.channel = 'chrome';
   }
 
   globalBrowser = await puppeteer.launch(launchArgs);
   return globalBrowser;
 }
+
 
 async function fetchWithStealth(url) {
   const browser = await getBrowser();

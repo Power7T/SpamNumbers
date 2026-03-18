@@ -1,39 +1,75 @@
 'use strict';
 
-/**
- * FTC DNC Daily CSV Scraper
- * Downloads daily CSV complain reports from ftc.gov.
- * Direct URL pattern: https://www.ftc.gov/sites/default/files/DNC_Complaint_Numbers_YYYY-MM-DD.csv
- */
-
-const { fetchRawWithStealth } = require('../lib/stealth-browser');
+const { fetchWithStealth, fetchRawWithStealth } = require('../lib/stealth-browser');
 const { normalizePhone, normalizeCallType } = require('../normalizer');
+const { getMissingFtcDates } = require('../db/queries');
 
 const SOURCE = 'ftc_csv';
 
-/**
- * Returns a YYYY-MM-DD string for N days ago.
- */
-function daysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-}
-
-async function scrapeFtcCsv() {
+async function scrapeFtcCsv(db) {
   const records = [];
-  const datesToTry = [0, 1, 2, 3, 4, 5, 6, 7].map(daysAgo);
+  
+  console.log(`[ftc_csv] Fetching the FTC directory page to find all available CSV files...`);
+  
+  // Scrape the main index page to dynamically find ALL currently hosted files
+  let allCsvUrls = [];
+  try {
+    const { $ } = await fetchWithStealth('https://www.ftc.gov/policy-notices/open-government/data-sets/do-not-call-data');
+    if ($) {
+      $('a').each((i, el) => {
+        const href = $(el).attr('href');
+        if (href && href.includes('DNC_Complaint_Numbers') && href.endsWith('.csv')) {
+          let fullUrl = href;
+          if (!fullUrl.startsWith('http')) {
+               fullUrl = 'https://www.ftc.gov' + (fullUrl.startsWith('/') ? '' : '/') + fullUrl;
+          }
+          if (!allCsvUrls.includes(fullUrl)) allCsvUrls.push(fullUrl);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn(`[ftc_csv] Failed to parse directory: ${err.message}`);
+    return records;
+  }
+  
+  if (allCsvUrls.length === 0) {
+    console.log(`[ftc_csv] No CSV links found on the main directory page.`);
+    return records;
+  }
+  
+  console.log(`[ftc_csv] Found ${allCsvUrls.length} total CSV files hosted on the FTC site!`);
 
-  console.log(`[ftc_csv] Checking for daily CSV files...`);
-
-  for (const date of datesToTry) {
-    const csvUrl = `https://www.ftc.gov/sites/default/files/DNC_Complaint_Numbers_${date}.csv`;
+  // Now filter the URLs against the database to download ONLY the ones we are missing
+  const missingUrls = [];
+  for (const url of allCsvUrls) {
+    const dateMatch = url.match(/\d{4}-\d{2}-\d{2}/);
+    if (!dateMatch) continue;
+    const date = dateMatch[0];
     
+    // Check if we already have records for this specific CSV date
+    const count = db.prepare("SELECT COUNT(*) AS count FROM spam_sources WHERE source = 'ftc_csv' AND raw_data LIKE ?").get(`%${date}%`).count;
+    if (count === 0) {
+      missingUrls.push({ url, date });
+    }
+  }
+  
+  if (missingUrls.length === 0) {
+    console.log(`[ftc_csv] Your database already has all ${allCsvUrls.length} available files! Up to date!`);
+    return records;
+  }
+  
+  console.log(`[ftc_csv] Downloading ${missingUrls.length} new CSV files...`);
+
+  // Download all missing files sequentially
+  for (const { url, date } of missingUrls) {
+
+      
     try {
-      console.log(`[ftc_csv] Trying ${csvUrl}...`);
-      const { text } = await fetchRawWithStealth(csvUrl);
+      console.log(`[ftc_csv] Trying ${url}...`);
+      const { text } = await fetchRawWithStealth(url);
       
       if (!text || text.length < 500 || text.includes('<!DOCTYPE html>')) {
+        console.warn(`[ftc_csv] Skipping ${date} (Invalid CSV data)`);
         continue;
       }
 
@@ -65,8 +101,6 @@ async function scrapeFtcCsv() {
       }
       
       console.log(`[ftc_csv] Successfully imported ${addedFromDate} entries from ${date}`);
-      // Only get the most recent valid one to keep the daily run bounded
-      if (addedFromDate > 0) break; 
     } catch (err) {
       console.warn(`[ftc_csv] Failed to fetch ${date}: ${err.message}`);
     }

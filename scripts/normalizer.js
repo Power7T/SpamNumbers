@@ -1,6 +1,9 @@
 'use strict';
 
-const { parsePhoneNumber, isValidPhoneNumber } = require('libphonenumber-js');
+const libphonenumber = require('google-libphonenumber');
+const phoneUtil = libphonenumber.PhoneNumberUtil.getInstance();
+const PNF = libphonenumber.PhoneNumberFormat;
+
 
 // Canonical call types
 const CALL_TYPES = new Set(['robocall', 'telemarketer', 'scam', 'debt_collector', 'other']);
@@ -29,54 +32,33 @@ const CALL_TYPE_MAP = [
 
 /**
  * Normalize a raw phone string to E.164 format (e.g. "+15551234567").
- * Supports international numbers from any country.
- * Returns null if the string cannot be parsed as a valid phone number.
+ * Uses google-libphonenumber for accurate carrier-level deduplication worldwide.
  */
-function normalizePhone(raw, defaultCountry) {
+function normalizePhone(raw, defaultCountry = 'US') {
   if (!raw) return null;
 
-  const str = String(raw).trim();
-
   try {
-    // 1. If it already starts with '+', try parsing as international (no country hint)
-    if (str.startsWith('+')) {
-      if (isValidPhoneNumber(str)) {
-        return parsePhoneNumber(str).format('E.164');
-      }
+    let str = String(raw).trim();
+    
+    // Quick heuristic: if it's 10 digits and defaultCountry is US, auto-adjust before parse
+    const digitsOnly = str.replace(/\D/g, '');
+    if (digitsOnly.length === 10 && !str.startsWith('+') && (defaultCountry === 'US' || !defaultCountry)) {
+      str = '+1' + digitsOnly;
+    } else if (digitsOnly.length > 10 && !str.startsWith('+')) {
+      str = '+' + digitsOnly;
     }
 
-    // 2. Try with explicit default country if provided (e.g. 'GB', 'FR', 'IN')
-    if (defaultCountry && isValidPhoneNumber(str, defaultCountry)) {
-      return parsePhoneNumber(str, defaultCountry).format('E.164');
-    }
-
-    // 3. Try as US number (backward compatible for US-focused scrapers)
-    if (isValidPhoneNumber(str, 'US')) {
-      return parsePhoneNumber(str, 'US').format('E.164');
-    }
-
-    // 4. Try prepending '+' in case digits include country code but lack the plus
-    const digits = str.replace(/\D/g, '');
-    if (digits.length >= 10 && digits.length <= 15) {
-      const withPlus = `+${digits}`;
-      if (isValidPhoneNumber(withPlus)) {
-        return parsePhoneNumber(withPlus).format('E.164');
-      }
-    }
-
-    // 5. US fallback: bare 10-digit number → assume US
-    if (digits.length === 10) {
-      const usNumber = `+1${digits}`;
-      if (isValidPhoneNumber(usNumber)) {
-        return parsePhoneNumber(usNumber).format('E.164');
-      }
+    const number = phoneUtil.parseAndKeepRawInput(str, defaultCountry);
+    if (phoneUtil.isValidNumber(number)) {
+      return phoneUtil.format(number, PNF.E164);
     }
   } catch (_) {
-    // fall through
+    // If exact parsing fails, we could try extracting from string, but strict lookup is safer
   }
 
   return null;
 }
+
 
 /**
  * Normalize a raw spam score to the 0–10 scale.

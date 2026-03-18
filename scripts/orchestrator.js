@@ -8,7 +8,7 @@ const { scrapeSyncMe } = require('./scrapers/syncme');
 const { scrapeFtcCsv } = require('./scrapers/ftcDnc');
 const { scrapeFtcApi } = require('./scrapers/ftcApi');
 const { scrapeValidators } = require('./scrapers/validatorApis');
-const { upsertFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
+const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
 const path = require('path');
@@ -26,10 +26,11 @@ const SCRAPERS = [
   { name: 'spamcalls',     fn: (db) => scrapeSpamCalls() },
   { name: 'tellows',       fn: (db) => scrapeTellows() },
   { name: 'syncme',        fn: (db) => scrapeSyncMe() },
-  { name: 'ftc_csv',      fn: (db) => scrapeFtcCsv() },
+  { name: 'ftc_csv',      fn: (db) => scrapeFtcCsv(db) },
   { name: 'ftc_api',      fn: (db) => scrapeFtcApi() },
   { name: 'validators',   fn: (db) => scrapeValidators(db) },
   { name: 'nomorobolist',  fn: (db) => scrapeNomoroboList() },
+
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
@@ -98,15 +99,15 @@ async function runGroup(db, scraperNames, allScrapers, errors) {
     let newFromSource = 0;
     let updatedFromSource = 0;
 
-    for (const record of records) {
-      try {
-        const { isNew } = upsertFromScraper(db, record);
-        if (isNew) { newFromSource++; totalNew++; }
-        else { updatedFromSource++; totalUpdated++; }
-      } catch (dbErr) {
-        errors.push({ source: name, message: dbErr.message });
-        break;
-      }
+    try {
+      const dbResult = upsertManyFromScraper(db, records);
+      newFromSource = dbResult.newCount;
+      updatedFromSource = dbResult.updatedCount;
+      totalNew += newFromSource;
+      totalUpdated += updatedFromSource;
+    } catch (dbErr) {
+      errors.push({ source: name, message: dbErr.message });
+      continue;
     }
 
     // Track scraper health
@@ -163,20 +164,22 @@ async function runAll(db, options = {}) {
       try {
         console.log(`[orchestrator] ▶ ${name}`);
         const records = await runScraperWithRetry(name, () => fn(db));
+        
         let newFromSource = 0;
         let updatedFromSource = 0;
 
-        for (const record of records) {
-          try {
-            const { isNew } = upsertFromScraper(db, record);
-            if (isNew) { newFromSource++; totalNew++; }
-            else { updatedFromSource++; totalUpdated++; }
-          } catch (dbErr) {
-            throw dbErr;
-          }
+        try {
+          const dbResult = upsertManyFromScraper(db, records);
+          newFromSource = dbResult.newCount;
+          updatedFromSource = dbResult.updatedCount;
+          totalNew += newFromSource;
+          totalUpdated += updatedFromSource;
+        } catch (dbErr) {
+          throw dbErr;
         }
 
         updateScraperHealth(db, name, records.length);
+
         console.log(`[orchestrator] ✓ ${name}: ${records.length} records (${newFromSource} new, ${updatedFromSource} updated)\n`);
       } catch (err) {
         console.error(`[orchestrator] ✗ ${name} FAILED: ${err.message}\n`);
