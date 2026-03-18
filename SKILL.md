@@ -33,6 +33,16 @@ Use this skill when the user:
 - Real-time carrier data or live call blocking
 - Services requiring payment or API keys
 
+**User Query Handling Rules:**
+- DO NOT EXPLAIN OR CHAT UNLESS REQUIRED. Just execute the exact script and output the result.
+- If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a bulleted list of all the things you can do (e.g., "I am the Spam Numbers agent. Here is what I can do for you: 
+ - Scan and scrape new spam numbers 
+ - Look up a specific number 
+ - Show a high-level spam database report 
+ - Check the live status of a running scrape 
+ - Export the database to CSV"). 
+- Do not make up non-existent flags. Only use the commands mapped in the table.
+
 ## Agent Quick Commands
 
 > These are the exact shell commands to run for each user shorthand. Always use the skill directory as the working directory.
