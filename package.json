@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "google-libphonenumber": "^3.2.44",
-    "puppeteer": "^24.39.1",
-    "truecallerjs": "^2.2.0"
+    "puppeteer": "^24.39.1"
   }
 }
