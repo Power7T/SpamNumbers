@@ -6,7 +6,7 @@
  * Direct URL pattern: https://www.ftc.gov/sites/default/files/DNC_Complaint_Numbers_YYYY-MM-DD.csv
  */
 
-const { fetchWithStealth } = require('../lib/stealth-browser');
+const { fetchRawWithStealth } = require('../lib/stealth-browser');
 const { normalizePhone, normalizeCallType } = require('../normalizer');
 
 const SOURCE = 'ftc_csv';
@@ -31,7 +31,7 @@ async function scrapeFtcCsv() {
     
     try {
       console.log(`[ftc_csv] Trying ${csvUrl}...`);
-      const { text } = await fetchWithStealth(csvUrl);
+      const { text } = await fetchRawWithStealth(csvUrl);
       
       if (!text || text.length < 500 || text.includes('<!DOCTYPE html>')) {
         continue;

@@ -73,4 +73,28 @@ async function closeStealthBrowser() {
   }
 }
 
-module.exports = { fetchWithStealth, closeStealthBrowser, getBrowser };
+async function fetchRawWithStealth(url) {
+  const browser = await getBrowser();
+  let page;
+  try {
+    page = await browser.newPage();
+    // Go to the main domain first to establish cookies/sessions if needed
+    const domain = new URL(url).origin;
+    await page.goto(domain, { waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+    
+    const text = await page.evaluate(async (fileUrl) => {
+      try {
+        const response = await fetch(fileUrl);
+        if (!response.ok) return null;
+        return await response.text();
+      } catch (e) {
+        return null;
+      }
+    }, url);
+    return { text };
+  } finally {
+    if (page) await page.close().catch(() => {});
+  }
+}
+
+module.exports = { fetchWithStealth, closeStealthBrowser, getBrowser, fetchRawWithStealth };
