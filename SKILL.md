@@ -43,18 +43,18 @@ cd scripts && npm install
 ### Look up a specific number
 
 ```bash
-node scripts/index.js lookup <phone_number>
+node index.js lookup <phone_number>
 ```
 
 Supports any country's phone number format. Checks local DB first, then SkipCalls API as fallback.
 
 Examples:
 ```bash
-node scripts/index.js lookup 8005551234       # US
-node scripts/index.js lookup +18005551234     # US (E.164)
-node scripts/index.js lookup +442382280715    # UK
-node scripts/index.js lookup +33178569561     # France
-node scripts/index.js lookup +919876543210    # India
+node index.js lookup 8005551234       # US
+node index.js lookup +18005551234     # US (E.164)
+node index.js lookup +442382280715    # UK
+node index.js lookup +33178569561     # France
+node index.js lookup +919876543210    # India
 ```
 
 Output example:
@@ -81,7 +81,7 @@ If not found:
 ### Bulk lookup
 
 ```bash
-node scripts/index.js bulk numbers.txt
+node index.js bulk numbers.txt
 ```
 
 Check multiple numbers from a text file (one per line).
@@ -89,7 +89,7 @@ Check multiple numbers from a text file (one per line).
 ### Run a full scan
 
 ```bash
-node scripts/index.js scrape
+node index.js scrape
 ```
 
 Fetches fresh data from all 14 sources. Safe to run anytime — each source is isolated so one failure won't stop the rest.
@@ -97,8 +97,8 @@ Fetches fresh data from all 14 sources. Safe to run anytime — each source is i
 ### Export to CSV
 
 ```bash
-node scripts/index.js export
-node scripts/index.js export my_spam_list.csv
+node index.js export
+node index.js export my_spam_list.csv
 ```
 
 Creates a CSV in `scripts/exports/` with columns: `phone_number, spam_score, call_type, country, report_count, sources, user_notes, date_first_seen, date_last_updated`
@@ -106,7 +106,7 @@ Creates a CSV in `scripts/exports/` with columns: `phone_number, spam_score, cal
 ### Show database statistics
 
 ```bash
-node scripts/index.js stats
+node index.js stats
 ```
 
 Shows total numbers, per-source breakdown, top 10 highest-score numbers, and last scan time.
@@ -114,8 +114,8 @@ Shows total numbers, per-source breakdown, top 10 highest-score numbers, and las
 ### Whitelist / unwhitelist
 
 ```bash
-node scripts/index.js whitelist +18005551234
-node scripts/index.js unwhitelist +18005551234
+node index.js whitelist +18005551234
+node index.js unwhitelist +18005551234
 ```
 
 Marks false positives so they are excluded from future lookup results.
@@ -123,7 +123,7 @@ Marks false positives so they are excluded from future lookup results.
 ### Start weekly auto-scheduler
 
 ```bash
-node scripts/index.js schedule
+node index.js schedule
 ```
 
 Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this process running in the background.
