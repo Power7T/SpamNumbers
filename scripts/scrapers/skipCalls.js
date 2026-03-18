@@ -6,7 +6,8 @@
  * No signup or API key required.
  */
 
-const { checkForBlock, fetchHtml, sleep, DELAY_MS } = require('./base');
+const { checkForBlock, sleep, DELAY_MS } = require('./base');
+const { fetchWithStealth } = require('../lib/stealth-browser');
 const { normalizePhone, normalizeCallType, scoreFromCount } = require('../normalizer');
 
 const BASE_URL = 'https://skipcalls.com';
@@ -15,11 +16,7 @@ const MAX_PAGES = 5;
 const MAX_NUMBERS = 40;
 
 async function scrapeSkipCalls() {
-  const blockCheck = await checkForBlock(`${BASE_URL}/numbers`);
-  if (blockCheck.blocked) {
-    console.warn(`[skipcalls] Blocked (HTTP ${blockCheck.status}), skipping`);
-    return [];
-  }
+  // Block check removed, using stealth browser which bypasses Cloudflare
 
   const records = [];
   const seen = new Set();
@@ -33,7 +30,7 @@ async function scrapeSkipCalls() {
   let startUrl = null;
   for (const path of listingPaths) {
     try {
-      const { $ } = await fetchHtml(`${BASE_URL}${path}`);
+      const { $ } = await fetchWithStealth(`${BASE_URL}${path}`);
       // Check if the page has phone-like content
       const bodyText = $.root().text();
       if (/\d{3}[\-\.]\d{3}[\-\.]\d{4}/.test(bodyText)) {
@@ -53,7 +50,7 @@ async function scrapeSkipCalls() {
 
     let $;
     try {
-      const result = await fetchHtml(pageUrl);
+      const result = await fetchWithStealth(pageUrl);
       $ = result.$;
     } catch (err) {
       console.warn(`[skipcalls] Failed to load page ${page}: ${err.message}`);

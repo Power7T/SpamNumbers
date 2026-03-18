@@ -5,7 +5,8 @@
  * Fetches the worst-rated phone numbers listing and individual number pages.
  */
 
-const { fetchHtml, sleep, DELAY_MS, checkForBlock } = require('./base');
+const { sleep, DELAY_MS, checkForBlock } = require('./base');
+const { fetchWithStealth } = require('../lib/stealth-browser');
 const { normalizePhone, scoreFromCount } = require('../normalizer');
 
 const BASE_URL = 'https://www.shouldianswer.com';
@@ -44,23 +45,19 @@ function ratingToCallType(ratingText) {
 
 async function shouldIAnswer() {
   // Quick block check
-  const blockCheck = await checkForBlock(BASE_URL);
-  if (blockCheck.blocked) {
-    console.warn(`[shouldianswer] Blocked (HTTP ${blockCheck.status}), skipping`);
-    return [];
-  }
+  // Block check removed, using stealth browser which bypasses Cloudflare
 
   const records = [];
 
   // Try the worst-rated numbers listing
   let $;
   try {
-    const result = await fetchHtml(`${BASE_URL}/worst-phones`);
+    const result = await fetchWithStealth(`${BASE_URL}/worst-phones`);
     $ = result.$;
   } catch (err) {
     // Try the main page as fallback
     try {
-      const result = await fetchHtml(BASE_URL);
+      const result = await fetchWithStealth(BASE_URL);
       $ = result.$;
     } catch (err2) {
       console.warn(`[shouldianswer] Failed to load listing: ${err2.message}`);
@@ -98,7 +95,7 @@ async function shouldIAnswer() {
 
     let details = { rating: 'negative', reportCount: 1, notes: '', callType: 'other' };
     try {
-      const { $ } = await fetchHtml(fullUrl);
+      const { $ } = await fetchWithStealth(fullUrl);
 
       const ratingEl = $('[class*="rating"], [class*="score"], [class*="verdict"]').first().text().trim();
       const countEl = $('[class*="count"], [class*="report"]').first().text().trim();

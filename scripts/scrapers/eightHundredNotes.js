@@ -6,7 +6,8 @@
  * then visits each number's page to collect report count and comments.
  */
 
-const { fetchHtml, sleep, DELAY_MS, checkForBlock } = require('./base');
+const { sleep, DELAY_MS, checkForBlock } = require('./base');
+const { fetchWithStealth } = require('../lib/stealth-browser');
 const { normalizePhone, normalizeCallType, scoreFromCount } = require('../normalizer');
 
 const BASE_URL = 'https://800notes.com';
@@ -24,7 +25,7 @@ const MAX_NUMBERS_PER_RUN = 30;
 
 async function scrapeNumberPage(url, callType) {
   try {
-    const { $, text: _ } = await fetchHtml(url);
+    const { $, text: _ } = await fetchWithStealth(url);
 
     // Extract report count
     const countText = $('.phone-number-details, .numreviews, .cnt, [class*="count"]').first().text() || '';
@@ -49,12 +50,7 @@ async function scrapeNumberPage(url, callType) {
 }
 
 async function scrapeEightHundredNotes() {
-  // Quick block check
-  const blockCheck = await checkForBlock(BASE_URL);
-  if (blockCheck.blocked) {
-    console.warn(`[800notes] Blocked (HTTP ${blockCheck.status}), skipping`);
-    return [];
-  }
+  // Block check removed, using stealth browser which bypasses Cloudflare
 
   const records = [];
   const seen = new Set();
@@ -68,7 +64,7 @@ async function scrapeEightHundredNotes() {
       const pageUrl = `${BASE_URL}${path}${page > 1 ? `?page=${page}` : ''}`;
       let $;
       try {
-        const result = await fetchHtml(pageUrl);
+        const result = await fetchWithStealth(pageUrl);
         $ = result.$;
       } catch (err) {
         console.warn(`[800notes] Failed to load ${pageUrl}: ${err.message}`);

@@ -188,6 +188,15 @@ function printStats(stats) {
 }
 
 async function main() {
+  // Check for Chromium installation (crucial for Puppeteer stealth scrapers on Ubuntu VPS)
+  if (!fs.existsSync('/usr/bin/chromium-browser') && !fs.existsSync('/usr/bin/chromium')) {
+    console.warn('\n======================================================');
+    console.warn('⚠️  WARNING: Chromium browser not found on this system!');
+    console.warn('⚠️  Puppeteer stealth scrapers may fail to run.');
+    console.warn('⚠️  To install on Ubuntu, run: sudo apt install -y chromium-browser');
+    console.warn('======================================================\n');
+  }
+
   const [, , command, ...args] = process.argv;
 
   if (!command || command === '--help' || command === '-h' || command === 'help') {

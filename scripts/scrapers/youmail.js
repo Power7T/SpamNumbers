@@ -6,7 +6,8 @@
  * Single fetch per run — no pagination needed.
  */
 
-const { fetchHtml, checkForBlock } = require('./base');
+const { checkForBlock } = require('./base');
+const { fetchWithStealth } = require('../lib/stealth-browser');
 const { normalizePhone } = require('../normalizer');
 
 const INDEX_URL = 'https://robocallindex.com/';
@@ -18,15 +19,11 @@ function rankToScore(rank, total) {
 }
 
 async function scrapeYoumail() {
-  const blockCheck = await checkForBlock(INDEX_URL);
-  if (blockCheck.blocked) {
-    console.warn(`[youmail] Blocked (HTTP ${blockCheck.status}), skipping`);
-    return [];
-  }
+  // Block check removed, using stealth browser which bypasses Cloudflare
 
   let $;
   try {
-    const result = await fetchHtml(INDEX_URL);
+    const result = await fetchWithStealth(INDEX_URL);
     $ = result.$;
   } catch (err) {
     console.warn(`[youmail] Failed to fetch index: ${err.message}`);

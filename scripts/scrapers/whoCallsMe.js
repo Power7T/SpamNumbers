@@ -5,7 +5,8 @@
  * A crowdsourced US phone number report database.
  */
 
-const { checkForBlock, fetchHtml, sleep, DELAY_MS } = require('./base');
+const { checkForBlock, sleep, DELAY_MS } = require('./base');
+const { fetchWithStealth } = require('../lib/stealth-browser');
 const { normalizePhone, normalizeCallType, scoreFromCount } = require('../normalizer');
 
 const BASE_URL = 'https://www.whocallsme.com';
@@ -13,11 +14,7 @@ const SOURCE = 'whocallsme';
 const MAX_NUMBERS = 20;
 
 async function scrapeWhoCallsMe() {
-  const blockCheck = await checkForBlock(`${BASE_URL}/`);
-  if (blockCheck.blocked) {
-    console.warn(`[whocallsme] Blocked (HTTP ${blockCheck.status}), skipping`);
-    return [];
-  }
+  // Block check removed, using stealth browser which bypasses Cloudflare
 
   const records = [];
   const seen = new Set();
@@ -33,7 +30,7 @@ async function scrapeWhoCallsMe() {
   for (const path of listingPaths) {
     try {
       const url = `${BASE_URL}${path}`;
-      const result = await fetchHtml(url);
+      const result = await fetchWithStealth(url);
       const bodyText = result.$.root().text();
       if (/\d{3}[\-\.]\d{3}[\-\.]\d{4}/.test(bodyText)) {
         $listing = result.$;
@@ -96,7 +93,7 @@ async function scrapeWhoCallsMe() {
     let callType = 'other';
 
     try {
-      const { $ } = await fetchHtml(fullUrl);
+      const { $ } = await fetchWithStealth(fullUrl);
       const countText = $('[class*="count"], [class*="report"], .cnt').first().text();
       const countMatch = countText.match(/(\d+)/);
       if (countMatch) reportCount = parseInt(countMatch[1], 10);
