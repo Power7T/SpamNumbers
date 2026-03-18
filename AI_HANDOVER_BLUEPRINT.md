@@ -7,10 +7,9 @@
 ## 🎯 1. Project Context & Objectives
 A production-grade **Spam Caller Database** scraper and lookup tool. Aggregates data from FTC, Tellows, Sync.me, GitHub, and Nomorobo.
 - **Goal:** Provide instant spam-risk assessments for international phone numbers.
-- **Platform:** Ubuntu VPS (85.208.51.22) integrated with the **OpenClaw TUI**.
+- **Platform:** Ubuntu VPS integrated with the **OpenClaw TUI**.
 
 ## 🏗️ 2. File Structure & Logistics
-- **Local Path:** `/Users/chandan/Desktop/AlttrueGithub/SpamNumbers`
 - **VPS Path:** `/root/.openclaw/workspace/skills/spam-numbers/scripts/`
 - **Critical Command Table:**
   | Goal | Command |
