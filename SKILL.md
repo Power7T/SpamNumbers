@@ -33,12 +33,26 @@ Use this skill when the user:
 - Real-time carrier data or live call blocking
 - Services requiring payment or API keys
 
+## Agent Quick Commands
+
+> These are the exact shell commands to run for each user shorthand. Always use the skill directory as the working directory.
+
+| User says | Run this command |
+|-----------|------------------|
+| `scrape` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js scrape` |
+| `stats` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js stats` |
+| `export` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js export` |
+| `schedule` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule` |
+| `lookup <number>` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js lookup <number>` |
+
+**Important:** When the user says just `scrape`, `scan`, or `scan for scam numbers`, immediately run the scrape command above. Do not ask for clarification.
+
 ## Setup (first time)
 
 Run once to install dependencies:
 
 ```bash
-cd scripts && npm install
+cd /root/.openclaw/workspace/skills/spam-numbers/scripts && npm install
 ```
 
 ## Commands
