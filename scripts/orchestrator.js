@@ -1,37 +1,25 @@
 'use strict';
 
-const { scrapeFtc } = require('./scrapers/ftc');
-const { scrapeEightHundredNotes } = require('./scrapers/eightHundredNotes');
-const { scrapeShouldIAnswer } = require('./scrapers/shouldIAnswer');
 const { scrapeSpamCalls } = require('./scrapers/spamCalls');
-const { scrapeYoumail } = require('./scrapers/youmail');
-const { scrapeSkipCalls } = require('./scrapers/skipCalls');
-const { scrapeWhoCallsMe } = require('./scrapers/whoCallsMe');
 const { scrapeGithubLists } = require('./scrapers/githubLists');
-const { scrapeCallerCenter } = require('./scrapers/callerCenter');
 const { scrapeNomoroboList } = require('./scrapers/nomoroboList');
+const { scrapeTellows } = require('./scrapers/tellows');
+const { scrapeSyncMe } = require('./scrapers/syncme');
 const { upsertFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 
 const SCRAPERS = [
-  // US Sources
-  { name: 'ftc',           fn: scrapeFtc },
-  { name: '800notes',      fn: scrapeEightHundredNotes },
-  { name: 'shouldianswer', fn: scrapeShouldIAnswer },
-  { name: 'spamcalls',     fn: scrapeSpamCalls },
-  { name: 'youmail',       fn: scrapeYoumail },
-  { name: 'skipcalls',     fn: scrapeSkipCalls },
-  { name: 'whocallsme',    fn: scrapeWhoCallsMe },
-  { name: 'callercenter',  fn: scrapeCallerCenter },
-  { name: 'nomorobolist',  fn: scrapeNomoroboList },
-  // International (GitHub: US + UK + France/EU + Global blocklists)
   { name: 'github',        fn: scrapeGithubLists },
+  { name: 'spamcalls',     fn: scrapeSpamCalls },
+  { name: 'tellows',       fn: scrapeTellows },
+  { name: 'syncme',        fn: scrapeSyncMe },
+  { name: 'nomorobolist',  fn: scrapeNomoroboList },
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
-const PARALLEL_GROUP_1 = ['ftc', 'github'];          // API + file download
-const PARALLEL_GROUP_2 = ['800notes', 'shouldianswer', 'youmail', 'callercenter'];
-const PARALLEL_GROUP_3 = ['spamcalls', 'skipcalls', 'whocallsme', 'nomorobolist'];
+const PARALLEL_GROUP_1 = ['github'];
+const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'syncme'];
+const PARALLEL_GROUP_3 = ['nomorobolist'];
 
 const MAX_RETRIES = 2;
 const RETRY_DELAYS = [2000, 5000]; // 2s, 5s backoff

@@ -50,33 +50,6 @@ const RAW_URLS = [
     notesCol: 1,
     country: 'Global',
   },
-  // Multi-country blocklist — Swyter/call-spam-blocklist
-  // Format: CSV, one number per line
-  {
-    url: 'https://raw.githubusercontent.com/Swyter/call-spam-blocklist/blocklist/blocklist.csv',
-    hasHeader: false,
-    phoneCol: 0,
-    notesCol: -1,
-    country: 'Global',
-  },
-  // US community list — mttkay/phone-blacklist
-  // Format: plain text, one US number per line
-  {
-    url: 'https://raw.githubusercontent.com/mttkay/phone-blacklist/master/blacklist.txt',
-    hasHeader: false,
-    phoneCol: 0,
-    notesCol: -1,
-    country: 'US',
-  },
-  // DE/EU — sundowndev/phone-number-based-spam-list
-  // Format: CSV with phone and category
-  {
-    url: 'https://raw.githubusercontent.com/sundowndev/phone-number-based-spam-list/master/spam.csv',
-    hasHeader: false,
-    phoneCol: 0,
-    notesCol: 1,
-    country: 'Global',
-  },
 ];
 
 /**

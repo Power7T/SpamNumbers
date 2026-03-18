@@ -2,28 +2,20 @@
 
 /**
  * SpamCalls.net scraper
- * This site is protected by Cloudflare. The scraper attempts a fetch and
- * gracefully returns an empty array if blocked — this is an expected,
- * non-error condition.
+ * This site is protected by Cloudflare.
  */
 
-const { checkForBlock, fetchHtml, sleep, DELAY_MS } = require('./base');
+const { fetchWithStealth } = require('../lib/stealth-browser');
+const { sleep, DELAY_MS } = require('./base');
 const { normalizePhone, scoreFromCount } = require('../normalizer');
 
 const BASE_URL = 'https://www.spamcalls.net';
 const SOURCE = 'spamcalls';
-const MAX_NUMBERS = 20;
 
 async function scrapeSpamCalls() {
-  const blockCheck = await checkForBlock(`${BASE_URL}/en/`);
-
-  if (blockCheck.blocked) {
-    console.warn(`[spamcalls] Blocked by Cloudflare (HTTP ${blockCheck.status}), skipping this run`);
-    return [];
-  }
-
-  // If we get through, try to scrape the recent/top numbers list
   const records = [];
+  const seen = new Set();
+  const MAX_NUMBERS = 50; // Increased limit for stealth mode
 
   try {
     const listingUrls = [
@@ -34,7 +26,7 @@ async function scrapeSpamCalls() {
     let $ = null;
     for (const url of listingUrls) {
       try {
-        const result = await fetchHtml(url);
+        const result = await fetchWithStealth(url);
         $ = result.$;
         break;
       } catch (_) { continue; }
@@ -48,7 +40,7 @@ async function scrapeSpamCalls() {
     // Collect phone number links
     const links = [];
     $('a[href*="/en/"], a[href*="phone"]').each((_, el) => {
-      const href = $( el).attr('href') || '';
+      const href = $(el).attr('href') || '';
       // Look for links that contain what appears to be a phone number segment
       if (/\d{7,}/.test(href)) links.push(href);
     });
@@ -60,10 +52,11 @@ async function scrapeSpamCalls() {
       const phoneMatch = href.match(/([\d\-+()]{7,20})(?:\/|$)/);
       if (!phoneMatch) continue;
       const phone = normalizePhone(phoneMatch[1]);
-      if (!phone) continue;
+      if (!phone || seen.has(phone)) continue;
+      seen.add(phone);
 
       try {
-        const { $ } = await fetchHtml(fullUrl);
+        const { $ } = await fetchWithStealth(fullUrl);
         const countText = $('[class*="count"], [class*="report"]').first().text();
         const countMatch = countText.match(/(\d+)/);
         const reportCount = countMatch ? parseInt(countMatch[1], 10) : 1;

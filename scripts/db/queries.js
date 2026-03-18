@@ -11,6 +11,8 @@ const SOURCE_WEIGHTS = {
   callercenter:  0.6,   // Community reverse lookup
   spamcalls:     0.5,
   nomorobolist:  0.5,   // Nomorobo public robocall list
+  tellows:       0.5,
+  syncme:        0.5,
   github:        0.4,   // Community-maintained, less verified
 };
 
@@ -373,4 +375,7 @@ module.exports = {
   insertRunLog,
   finalizeRunLog,
   SOURCE_WEIGHTS,
+  clearStaleHealth: (db) => {
+    db.prepare("DELETE FROM scraper_health WHERE source NOT IN ('github', 'spamcalls', 'tellows', 'syncme', 'nomorobolist')").run();
+  }
 };

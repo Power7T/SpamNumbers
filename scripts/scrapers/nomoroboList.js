@@ -2,12 +2,10 @@
 
 /**
  * Nomorobo top robocallers scraper
- * Attempts to scrape Nomorobo's publicly visible top robocaller lists.
- * Nomorobo may be behind Cloudflare — returns [] gracefully if blocked.
- * Their "top spam calls" page lists the most reported robocallers in the US.
  */
 
-const { checkForBlock, fetchHtml, sleep, DELAY_MS } = require('./base');
+const { fetchWithStealth } = require('../lib/stealth-browser');
+const { sleep, DELAY_MS } = require('./base');
 const { normalizePhone, normalizeCallType, scoreFromCount } = require('../normalizer');
 
 const BASE_URL = 'https://www.nomorobo.com';
@@ -15,20 +13,13 @@ const SOURCE = 'nomorobolist';
 const MAX_NUMBERS = 25;
 
 async function scrapeNomoroboList() {
-  const blockCheck = await checkForBlock(`${BASE_URL}/`);
-  if (blockCheck.blocked) {
-    console.warn(`[nomorobolist] Blocked (HTTP ${blockCheck.status}), skipping`);
-    return [];
-  }
-
   const records = [];
   const seen = new Set();
 
   // Public pages listing top reported numbers
   const listingPaths = [
-    '/top-spam-calls',
+    '/lookup',
     '/robocaller',
-    '/scam-likely',
     '/',
   ];
 
@@ -38,7 +29,7 @@ async function scrapeNomoroboList() {
   for (const path of listingPaths) {
     try {
       const url = `${BASE_URL}${path}`;
-      const result = await fetchHtml(url);
+      const result = await fetchWithStealth(url);
       const text = result.$.root().text();
       if (/\d{3}[\s\-\.]\d{3}[\s\-\.]\d{4}/.test(text) || /\(\d{3}\)\s*\d{3}/.test(text)) {
         $ = result.$;
@@ -76,11 +67,11 @@ async function scrapeNomoroboList() {
     }
   }
 
-  // Collect phone number links for detail scraping
+  // Collect phone number links
   const links = [];
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href') || '';
-    if (/\/lookup\/[\d\-+()]{7,}/.test(href) || /\d{10,}/.test(href)) {
+    if (/\/lookup\/[\d\-+()]{7,}/.test(href)) {
       links.push(href);
     }
   });
@@ -101,7 +92,7 @@ async function scrapeNomoroboList() {
     let notes = '';
 
     try {
-      const result = await fetchHtml(fullUrl);
+      const result = await fetchWithStealth(fullUrl);
       const detail$ = result.$;
 
       const countText = detail$('[class*="count"], [class*="report"], [class*="total"]').first().text();
@@ -114,7 +105,7 @@ async function scrapeNomoroboList() {
       const noteEls = [];
       detail$('[class*="comment"], [class*="description"], [class*="report"]').each((_, el) => {
         const t = detail$(el).text().trim().replace(/\s+/g, ' ').slice(0, 200);
-        if (t.length > 10) noteEls.push(t);
+        if (t.length > 20) noteEls.push(t);
       });
       notes = noteEls.slice(0, 3).join(' | ');
     } catch (_) { /* use defaults */ }
