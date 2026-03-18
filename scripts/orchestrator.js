@@ -10,6 +10,16 @@ const { scrapeFtcApi } = require('./scrapers/ftcApi');
 const { scrapeValidators } = require('./scrapers/validatorApis');
 const { upsertFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
+const fs = require('fs');
+const path = require('path');
+
+const LOG_FILE = path.join(__dirname, 'latest-scrape-progress.log');
+
+function logToFile(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  fs.appendFileSync(LOG_FILE, line);
+}
+
 
 const SCRAPERS = [
   { name: 'github',        fn: (db) => scrapeGithubLists() },
@@ -38,10 +48,13 @@ async function runScraperWithRetry(name, fn) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        console.log(`[orchestrator]   ↻ ${name} retry #${attempt}`);
+        const msg = `↻ ${name} retry #${attempt}`;
+        console.log(`[orchestrator]   ${msg}`);
+        logToFile(msg);
         await sleep(RETRY_DELAYS[attempt - 1]);
       }
       return await fn();
+
     } catch (err) {
       lastError = err;
       if (attempt < MAX_RETRIES) {
@@ -64,9 +77,12 @@ async function runGroup(db, scraperNames, allScrapers, errors) {
 
   const results = await Promise.allSettled(
     group.map(async ({ name, fn }) => {
-      console.log(`[orchestrator] ▶ ${name}`);
+      const msg = `▶ Starting ${name}...`;
+      console.log(`[orchestrator] ${msg}`);
+      logToFile(msg);
       const records = await runScraperWithRetry(name, () => fn(db));
       return { name, records };
+
     })
   );
 
@@ -98,10 +114,15 @@ async function runGroup(db, scraperNames, allScrapers, errors) {
 
     // Warn if scraper returned 0 records
     if (records.length === 0) {
-      console.warn(`[orchestrator] ⚠ ${name}: 0 records (source may be down or blocked)\n`);
+      const msg = `⚠ ${name}: 0 records (blocked?)`;
+      console.warn(`[orchestrator] ${msg}\n`);
+      logToFile(msg);
     } else {
-      console.log(`[orchestrator] ✓ ${name}: ${records.length} records (${newFromSource} new, ${updatedFromSource} updated)\n`);
+      const msg = `✓ ${name}: ${records.length} records (${newFromSource} new, ${updatedFromSource} updated)`;
+      console.log(`[orchestrator] ${msg}\n`);
+      logToFile(msg);
     }
+
   }
 
   return { newCount: totalNew, updatedCount: totalUpdated };
@@ -122,8 +143,12 @@ async function runAll(db, options = {}) {
 
   const useParallel = options.parallel !== false;
 
+  // Reset log file for new run
+  fs.writeFileSync(LOG_FILE, `Starting scrape run #${runId} — ${new Date().toISOString()}\n`);
+
   console.log(`\n[orchestrator] Starting scrape run #${runId} — ${new Date().toISOString()}`);
   console.log(`[orchestrator] Running ${SCRAPERS.length} scrapers ${useParallel ? '(parallel groups)' : '(sequential)'}\n`);
+
 
   if (useParallel) {
     // Run in parallel groups to balance speed vs rate limiting

@@ -43,9 +43,15 @@ Use this skill when the user:
 | `stats` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js stats` |
 | `export` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js export` |
 | `schedule` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule` |
+| `status` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js status` |
 | `lookup <number>` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js lookup <number>` |
 
+**Live Progress Tracking:**
+- When a scrape is running, if the user asks "how is it going?" or "any updates?", run the `status` command above to read the current progress log.
+- Do not wait for the main scrape to finish to report progress; you can run the `status` command independently.
+
 **Important:** When the user says just `scrape`, `scan`, or `scan for scam numbers`, immediately run the scrape command above. Do not ask for clarification.
+
 
 ## Setup (first time)
 

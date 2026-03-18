@@ -11,23 +11,29 @@ send "$password\r"
 
 expect "root@*#"
 
-# 1. Force a clean rebuild of better-sqlite3 in the scripts folder
-send "cd ~/SpamNumbers/scripts && rm -rf node_modules/better-sqlite3 && npm install --build-from-source better-sqlite3\r"
+# 1. Inspect the service
+send "systemctl --user cat openclaw-gateway.service\r"
 expect "root@*#"
 
-# 2. Check if the .node file was actually created
-send "ls -l node_modules/better-sqlite3/build/Release/better_sqlite3.node\r"
+# 2. Check the OpenClaw configuration
+send "openclaw config list\r"
 expect "root@*#"
 
-# 3. Try to require it directly with a small script
-send "node -e 'require(\"better-sqlite3\")'\r"
+# 3. VERIFY BETTER-SQLITE3 CAN BE LOADED IN THE SKILL DIR
+send "cd /root/.openclaw/workspace/skills/spam-numbers/scripts\r"
+expect "root@*#"
+send "node -e 'console.log(require(\"better-sqlite3\").version)'\r"
 expect {
-    "root@*#" { send_user "Requirement SUCCESS\n" }
-    "Error" { send_user "Requirement FAILED\n" }
+    "node_modules" { send_user "REQUIRE FAILED\n" }
+    "root@*#" { send_user "REQUIRE SUCCESS\n" }
 }
 
-# 4. Try stats again from the root proxy
-send "cd ~/SpamNumbers && node index.js stats\r"
+# 4. START TUI AND SHOW THE WORKING DIRECTORY
+send "openclaw tui\r"
+sleep 15
+send "print your current working directory\r"
+sleep 15
+send "\x03"
 expect "root@*#"
 
 send "exit\r"

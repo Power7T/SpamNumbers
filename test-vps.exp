@@ -1,0 +1,59 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# 1. Update to the latest 433e6aa (Universal version)
+send "cd ~/SpamNumbers && git pull origin claude/spam-numbers-skill-QYyQx\r"
+expect "root@*#"
+
+# 2. Redisploy to OpenClaw workspace (Ensures proxy and SKILL.md are in place)
+send "bash deploy.sh\r"
+# Skip those pesky prompts if they appear during initial scrape
+expect {
+    "Enter key (or \"skip\" to ignore this time, or \"permanent\" to never ask again):" {
+        send "skip\r"
+        exp_continue
+    }
+    "root@*#"
+}
+
+# 3. TEST 1: Stats (Basic DB access)
+send "cd ~/.openclaw/workspace/skills/spam-numbers && node index.js stats\r"
+expect {
+    "Total spam numbers:" { send_user "STATS SUCCESS\n" }
+    timeout { send_user "STATS TIMEOUT\n" }
+}
+expect "root@*#"
+
+# 4. TEST 2: Export (CSV Generation)
+send "node index.js export\r"
+expect {
+    "CSV exported to:" { send_user "EXPORT SUCCESS\n" }
+    timeout { send_user "EXPORT TIMEOUT\n" }
+}
+expect "root@*#"
+
+# 5. TEST 3: Scrape (Check engine)
+send "node index.js scrape\r"
+# We'll let it run for 10 seconds to confirm no compilation errors
+expect {
+    "Starting scrape run" { 
+        send_user "SCRAPE STARTED SUCCESSFULLY\n"
+        sleep 10
+        send "\x03" ;# Ctrl-C to stop
+    }
+    timeout { send_user "SCRAPE TIMEOUT\n" }
+}
+expect "root@*#"
+
+send "exit\r"
+expect eof

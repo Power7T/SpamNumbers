@@ -1,0 +1,44 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# 1. Start a fresh tmux session with the TUI
+send "tmux kill-session -t fix\r"
+expect "root@*#"
+send "tmux new-session -d -s fix 'openclaw tui --session fresh-verified'\r"
+expect "root@*#"
+
+# 2. Wait for it to load
+sleep 20
+
+# 3. TYPE THE CHAT REQUEST into the tmux session
+send "tmux send-keys -t fix \"Total numbers in database?\" Enter\r"
+expect "root@*#"
+
+# 4. Wait for the Agent to answer (this takes time)
+sleep 45
+
+# 5. CAPTURE THE SCREEN and show it to the user!
+send "tmux capture-pane -p -t fix\r"
+expect "root@*#"
+
+# 6. DO A SECOND CHECK - LOOKUP
+send "tmux send-keys -t fix \"check if +1-800-555-1234 is spam\" Enter\r"
+expect "root@*#"
+sleep 20
+
+# 7. CAPTURE THE SCREEN AGAIN
+send "tmux capture-pane -p -t fix\r"
+expect "root@*#"
+
+send "exit\r"
+expect eof

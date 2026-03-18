@@ -1,0 +1,34 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# 1. READ SERVICE FULL
+send "cat /root/.config/systemd/user/openclaw-gateway.service\r"
+expect "root@*#"
+
+# 2. CHECK THE REQUIRE IN SKILL DIR
+send "cd /root/.openclaw/workspace/skills/spam-numbers/scripts && node -e 'console.log(\"LOAD TEST: \" + require(\"better-sqlite3\").name)'\r"
+expect {
+    "LOAD TEST" { send_user "REQUIRE SUCCESS IN SKILL DIR\n" }
+    "MODULE_NOT_FOUND" { send_user "REQUIRE FAILED IN SKILL DIR\n" }
+}
+
+# 3. IF SUCCESSFUL, ASK THE TUI FOR ITS PATH
+send "openclaw tui\r"
+sleep 20
+send "what is the absolute path to your scripts directory?\r"
+sleep 30
+send "\x03"
+expect "root@*#"
+
+send "exit\r"
+expect eof

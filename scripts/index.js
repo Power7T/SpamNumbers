@@ -117,7 +117,9 @@ COMMANDS
   decay               Manually run stale data cleanup (auto-runs after scrape)
   export [filename]   Export database to CSV
   schedule            Start weekly auto-scheduler (long-running)
+  status              Show live progress of the current scrape run
   stats               Show database statistics + scraper health
+
   history             Find gaps in FTC data and prompt for backfill
   config <p> <v>      Set API keys (NUMVERIFY_API_KEY, ABSTRACT_API_KEY, FTC_API_KEY)
 
@@ -393,7 +395,22 @@ async function main() {
         return;
       }
 
+      case 'status': {
+        const logPath = path.join(__dirname, 'latest-scrape-progress.log');
+        if (!fs.existsSync(logPath)) {
+          console.log('No active or recent scrape logs found.');
+          break;
+        }
+        const log = fs.readFileSync(logPath, 'utf8');
+        const lines = log.split('\n').filter(Boolean).slice(-10);
+        console.log(`\n--- Latest Scrape Progress ---\n`);
+        console.log(lines.join('\n'));
+        console.log(`\n-----------------------------\n`);
+        break;
+      }
+
       case 'stats': {
+
         const stats = getStats(db);
         printStats(stats);
         break;

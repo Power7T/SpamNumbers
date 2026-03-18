@@ -1,0 +1,19 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# 1. READ THE SKILL DOC ON VPS
+send "cat /root/.openclaw/workspace/skills/spam-numbers/SKILL.md\r"
+expect "root@*#"
+
+send "exit\r"
+expect eof

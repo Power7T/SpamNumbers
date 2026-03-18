@@ -1,0 +1,115 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -t -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# Clear the session cache
+send "echo '{}' > /root/.openclaw/agents/main/sessions/sessions.json\r"
+expect "root@*#"
+send "systemctl --user restart openclaw-gateway.service\r"
+expect "root@*#"
+sleep 10
+
+# STRICT: ONLY this one command
+send "openclaw tui\r"
+
+# Wait for TUI to load
+sleep 20
+
+# ============================
+# FUNCTION: Auto-Skip
+# ============================
+proc skip_api_prompts {} {
+    set count 0
+    while {$count < 3} {
+        set timeout 30
+        expect {
+            -re "NumVerify|Abstract|API|key" {
+                send "skip\r"
+                incr count
+                send_user "\n(SKIPPED API PROMPT $count)\n"
+                sleep 5
+            }
+            "Starting scrape run" {
+                send_user "\n(SCRAPE STARTED)\n"
+                break
+            }
+            "orchestrator" {
+                send_user "\n(SCRAPE STARTED - ORCH)\n"
+                break
+            }
+            timeout {
+                send_user "\n(NO MORE API PROMPTS DETECTED)\n"
+                break
+            }
+        }
+    }
+}
+
+# ============================
+# TEST 1: SCRAPE
+# ============================
+send_user "\n\n==== TESTING: scrape ====\n"
+send "run the spam numbers scrape command\r"
+skip_api_prompts
+
+# Wait for scrape progress
+set timeout 120
+expect {
+    "orchestrator" { send_user "==== SCRAPE: ACTIVE ====\n" }
+    "github" { send_user "==== SCRAPE: ACTIVE (github) ====\n" }
+    timeout { send_user "==== SCRAPE: RUNNING ====\n" }
+}
+sleep 30
+
+# ============================
+# TEST 2: STATS
+# ============================
+send_user "\n\n==== TESTING: stats ====\n"
+send "show spam database stats\r"
+set timeout 60
+expect {
+    "Total spam numbers:" { send_user "==== STATS: SUCCESS ====\n" }
+    "spam numbers" { send_user "==== STATS: SUCCESS (phrase) ====\n" }
+    timeout { send_user "==== STATS: TIMEOUT ====\n" }
+}
+sleep 10
+
+# ============================
+# TEST 3: EXPORT
+# ============================
+send_user "\n\n==== TESTING: export ====\n"
+send "export spam numbers to csv\r"
+set timeout 60
+expect {
+    "CSV exported" { send_user "==== EXPORT: SUCCESS ====\n" }
+    "exported" { send_user "==== EXPORT: SUCCESS (phrase) ====\n" }
+    timeout { send_user "==== EXPORT: TIMEOUT ====\n" }
+}
+sleep 10
+
+# ============================
+# TEST 4: LOOKUP
+# ============================
+send_user "\n\n==== TESTING: lookup ====\n"
+send "is +18005551234 a spam number?\r"
+set timeout 60
+expect {
+    "found" { send_user "==== LOOKUP: SUCCESS ====\n" }
+    "spam" { send_user "==== LOOKUP: SUCCESS (found) ====\n" }
+    timeout { send_user "==== LOOKUP: TIMEOUT ====\n" }
+}
+
+# EXIT
+send "\x03"
+expect "root@*#"
+send "exit\r"
+expect eof

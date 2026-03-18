@@ -1,0 +1,39 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+# Force a pseudoterminal to make the TUI happy
+spawn ssh -t -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# The user wants this to be the ONLY command
+send "openclaw tui\r"
+
+# Give the TUI some time to initialize its rich interface
+sleep 15
+
+# Type the chat command
+send "how many total spam numbers do we have now?\r"
+
+# Wait for the agent to respond
+set timeout 120
+expect {
+    "Total spam numbers:" { send_user "TUI CHAT RESPONSE SUCCESS\n" }
+    "entries" { send_user "TUI CHAT RESPONSE SUCCESS (ENTRIES)\n" }
+    "There are" { send_user "TUI CHAT RESPONSE SUCCESS (PHRASE)\n" }
+}
+
+# Keep the connection open for a bit so we can see the full screen
+sleep 10
+
+# Exit the TUI
+send "\x03" ;# Ctrl-C
+expect "root@*#"
+send "exit\r"
+expect eof

@@ -1,0 +1,44 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# 1. First, check if gateway is running
+send "ps aux | grep openclaw | grep gateway\r"
+expect "root@*#"
+
+# 2. Start Gateway if needed
+send "openclaw gateway &\r"
+sleep 5
+expect "root@*#"
+
+# 3. Start TUI and check connection
+send "openclaw tui --session test-gateway\r"
+sleep 20
+
+# 4. Check if we see "connected" in the TUI output
+expect {
+    "connected" { 
+        send_user "GATEWAY CONNECTED SUCCESS\n"
+        send "how many spam numbers in database?\r"
+    }
+}
+
+# 5. Capture response
+set timeout 180
+expect {
+    "Total spam numbers:" { send_user "TUI CHAT RESPONSE SUCCESS\n" }
+}
+
+send "\x03"
+expect "root@*#"
+send "exit\r"
+expect eof

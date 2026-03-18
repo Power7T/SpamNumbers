@@ -1,0 +1,48 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect "password:"
+send "$password\r"
+
+expect "root@*#"
+
+# 1. FIND THE RELENTLESS GATEWAY
+send "ps -up 101395\r"
+expect "root@*#"
+
+# 2. CHECK SYSTEMD
+send "systemctl --user list-units | grep openclaw\r"
+expect "root@*#"
+send "systemctl list-units | grep openclaw\r"
+expect "root@*#"
+
+# 3. STOP EVERYTHING FOR REAL
+send "openclaw gateway stop\r"
+expect "root@*#"
+send "systemctl --user stop openclaw-gateway.service\r"
+expect "root@*#"
+send "pkill -9 -f openclaw\r"
+expect "root@*#"
+
+# 4. RE-START FRESH
+send "openclaw gateway &\r"
+sleep 5
+expect "root@*#"
+
+# 5. TEST TUI again
+send "openclaw tui --session strict-final\r"
+sleep 20
+send "scrape\r"
+set timeout 120
+expect "Scrape"
+sleep 30
+send "\x03"
+expect "root@*#"
+
+send "exit\r"
+expect eof
