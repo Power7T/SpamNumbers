@@ -5,21 +5,27 @@ const { scrapeGithubLists } = require('./scrapers/githubLists');
 const { scrapeNomoroboList } = require('./scrapers/nomoroboList');
 const { scrapeTellows } = require('./scrapers/tellows');
 const { scrapeSyncMe } = require('./scrapers/syncme');
+const { scrapeFtcCsv } = require('./scrapers/ftcDnc');
+const { scrapeFtcApi } = require('./scrapers/ftcApi');
+const { scrapeValidators } = require('./scrapers/validatorApis');
 const { upsertFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 
 const SCRAPERS = [
-  { name: 'github',        fn: scrapeGithubLists },
-  { name: 'spamcalls',     fn: scrapeSpamCalls },
-  { name: 'tellows',       fn: scrapeTellows },
-  { name: 'syncme',        fn: scrapeSyncMe },
-  { name: 'nomorobolist',  fn: scrapeNomoroboList },
+  { name: 'github',        fn: (db) => scrapeGithubLists() },
+  { name: 'spamcalls',     fn: (db) => scrapeSpamCalls() },
+  { name: 'tellows',       fn: (db) => scrapeTellows() },
+  { name: 'syncme',        fn: (db) => scrapeSyncMe() },
+  { name: 'ftc_csv',      fn: (db) => scrapeFtcCsv() },
+  { name: 'ftc_api',      fn: (db) => scrapeFtcApi() },
+  { name: 'validators',   fn: (db) => scrapeValidators(db) },
+  { name: 'nomorobolist',  fn: (db) => scrapeNomoroboList() },
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
-const PARALLEL_GROUP_1 = ['github'];
+const PARALLEL_GROUP_1 = ['github', 'ftc_csv', 'ftc_api'];
 const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'syncme'];
-const PARALLEL_GROUP_3 = ['nomorobolist'];
+const PARALLEL_GROUP_3 = ['nomorobolist', 'validators'];
 
 const MAX_RETRIES = 2;
 const RETRY_DELAYS = [2000, 5000]; // 2s, 5s backoff
@@ -59,7 +65,7 @@ async function runGroup(db, scraperNames, allScrapers, errors) {
   const results = await Promise.allSettled(
     group.map(async ({ name, fn }) => {
       console.log(`[orchestrator] ▶ ${name}`);
-      const records = await runScraperWithRetry(name, fn);
+      const records = await runScraperWithRetry(name, () => fn(db));
       return { name, records };
     })
   );
@@ -131,7 +137,7 @@ async function runAll(db, options = {}) {
     for (const { name, fn } of SCRAPERS) {
       try {
         console.log(`[orchestrator] ▶ ${name}`);
-        const records = await runScraperWithRetry(name, fn);
+        const records = await runScraperWithRetry(name, () => fn(db));
         let newFromSource = 0;
         let updatedFromSource = 0;
 

@@ -73,4 +73,4 @@ async function closeStealthBrowser() {
   }
 }
 
-module.exports = { fetchWithStealth, closeStealthBrowser };
+module.exports = { fetchWithStealth, closeStealthBrowser, getBrowser };

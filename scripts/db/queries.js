@@ -13,6 +13,7 @@ const SOURCE_WEIGHTS = {
   nomorobolist:  0.5,   // Nomorobo public robocall list
   tellows:       0.5,
   syncme:        0.5,
+  ftc_api:       0.9,   // Direct government API — high trust
   github:        0.4,   // Community-maintained, less verified
 };
 
@@ -375,7 +376,23 @@ module.exports = {
   insertRunLog,
   finalizeRunLog,
   SOURCE_WEIGHTS,
+  getMissingFtcDates: (db, days = 180) => {
+    // Returns days in the last N days where we have 0 ftc_csv records
+    const dates = [];
+    for (let i = 0; i < days; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const iso = d.toISOString().slice(0, 10);
+        // Skip weekends for FTC CSV (they don't publish them usually)
+        const day = d.getDay();
+        if (day === 0 || day === 6) continue; 
+        
+        const count = db.prepare("SELECT COUNT(*) as count FROM spam_sources WHERE source = 'ftc_csv' AND date(scraped_at) = ?").get(iso).count;
+        if (count === 0) dates.push(iso);
+    }
+    return dates;
+  },
   clearStaleHealth: (db) => {
-    db.prepare("DELETE FROM scraper_health WHERE source NOT IN ('github', 'spamcalls', 'tellows', 'syncme', 'nomorobolist')").run();
+    db.prepare("DELETE FROM scraper_health WHERE source NOT IN ('github', 'spamcalls', 'tellows', 'syncme', 'nomorobolist', 'ftc_api', 'ftc_csv')").run();
   }
 };

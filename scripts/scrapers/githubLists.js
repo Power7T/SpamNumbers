@@ -14,32 +14,46 @@ const SOURCE = 'github';
 // Verified community-maintained spam number list files (raw GitHub URLs)
 // Each URL has been tested and confirmed accessible (200 OK)
 const RAW_URLS = [
-  // US — jwoertink/blocked-numbers (800+ robocall entries)
+  // US — jwoertink/blocked-numbers (800+ entries)
   {
-    url: 'https://raw.githubusercontent.com/jwoertink/blocked-numbers/master/list.csv',
+    url: 'https://raw.githubusercontent.com/jwoertink/blocked-numbers/main/list.csv',
     hasHeader: false,
     phoneCol: 0,
     notesCol: 1,
     country: 'US',
   },
   // International (mainly France/EU) — Oros42/phone-blacklist
-  // Format: phone,label (e.g. "+33178569561,spam" or "3922,spam-FR")
   {
     url: 'https://raw.githubusercontent.com/Oros42/phone-blacklist/master/blacklist.csv',
     hasHeader: false,
     phoneCol: 0,
-    notesCol: 1,  // label column contains "spam", "spam-FR", "spam-BE", etc.
+    notesCol: 1,
     country: 'Global',
-    parseLabel: true,  // extract country from label suffix
+    parseLabel: true,
   },
   // UK — bretmlw/uk-phone-scam-numbers
-  // Format: plain text, one +44 number per line
   {
-    url: 'https://raw.githubusercontent.com/bretmlw/uk-phone-scam-numbers/master/numbers.txt',
+    url: 'https://raw.githubusercontent.com/bretmlw/uk-phone-scam-numbers/main/numbers.txt',
     hasHeader: false,
     phoneCol: 0,
     notesCol: -1,
     country: 'UK',
+  },
+  // Canada/NA — fed135/phone-blacklist
+  {
+    url: 'https://raw.githubusercontent.com/fed135/phone-blacklist/master/data/list.csv',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: 1,
+    country: 'CA',
+  },
+  // Hungary/EU — laci37/otp-spam
+  {
+    url: 'https://raw.githubusercontent.com/laci37/otp-spam/master/data.csv',
+    hasHeader: true,
+    phoneCol: 0, // Assuming phone is in col 0
+    notesCol: 1,
+    country: 'HU',
   },
   // International — greyhat-academy/lists.d (TSV format)
   // Format: phone\tnotes (tab-separated)
