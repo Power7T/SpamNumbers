@@ -10,7 +10,11 @@ puppeteer.use(StealthPlugin());
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
-async function fetchWithStealth(url) {
+let globalBrowser = null;
+
+async function getBrowser() {
+  if (globalBrowser) return globalBrowser;
+
   let executablePath = undefined;
   if (fs.existsSync('/usr/bin/chromium-browser')) {
     executablePath = '/usr/bin/chromium-browser';
@@ -36,10 +40,15 @@ async function fetchWithStealth(url) {
     launchArgs.channel = 'chrome';
   }
 
-  const browser = await puppeteer.launch(launchArgs);
+  globalBrowser = await puppeteer.launch(launchArgs);
+  return globalBrowser;
+}
 
+async function fetchWithStealth(url) {
+  const browser = await getBrowser();
+  let page;
   try {
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.setUserAgent(USER_AGENT);
     
     // Cloudflare challenges sometimes require a realistic viewport size
@@ -53,8 +62,15 @@ async function fetchWithStealth(url) {
     const text = await page.content();
     return { $: cheerio.load(text), text };
   } finally {
-    await browser.close().catch(() => {});
+    if (page) await page.close().catch(() => {});
   }
 }
 
-module.exports = { fetchWithStealth };
+async function closeStealthBrowser() {
+  if (globalBrowser) {
+    await globalBrowser.close().catch(() => {});
+    globalBrowser = null;
+  }
+}
+
+module.exports = { fetchWithStealth, closeStealthBrowser };

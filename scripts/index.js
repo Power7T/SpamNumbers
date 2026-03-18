@@ -25,6 +25,7 @@ const { runAll } = require('./orchestrator');
 const { exportToCsv } = require('./exporter');
 const { startScheduler } = require('./scheduler');
 const { fetchText } = require('./scrapers/base');
+const { closeStealthBrowser } = require('./lib/stealth-browser');
 
 process.on('unhandledRejection', (reason) => {
   console.error('[fatal] Unhandled rejection:', reason);
@@ -343,6 +344,7 @@ async function main() {
     if (command !== 'schedule') {
       closeDb();
     }
+    await closeStealthBrowser();
   }
 }
 
