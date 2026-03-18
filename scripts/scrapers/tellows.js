@@ -8,34 +8,49 @@ const { fetchWithStealth } = require('../lib/stealth-browser');
 const { sleep, DELAY_MS } = require('./base');
 const { normalizePhone, scoreFromCount } = require('../normalizer');
 
-const BASE_URL = 'https://www.tellows.com';
 const SOURCE = 'tellows';
-const MAX_NUMBERS = 30;
+const MAX_NUMBERS = 100;
 
 async function scrapeTellows() {
   const records = [];
   const seen = new Set();
 
-  const listingUrls = [
-    `${BASE_URL}/statistics/most-searched-numbers`,
-    `${BASE_URL}/en/recent-comments`,
-    'https://www.tellows.co.uk/',
-    'https://www.tellows.de/',
-    'https://www.tellows.it/',
-    'https://www.tellows.fr/',
-    'https://www.tellows.es/',
-    'https://www.tellows.com.br/',
-    'https://www.tellows.com.mx/',
+  const TELLOWS_DOMAINS = [
+    // North America & UK
+    'https://www.tellows.com/', 'https://www.tellows.co.uk/',
+    // Europe
+    'https://www.tellows.de/', 'https://www.tellows.it/',
+    'https://www.tellows.fr/', 'https://www.tellows.es/',
+    // LatAm (Massive fraud boards)
+    'https://www.tellows.com.br/', 'https://www.tellows.com.mx/',
+    // Asia, India & Africa (Emerging market coverage)
+    'https://www.tellows.in/', 'https://www.tellows.co.za/'
   ];
 
-  try {
-    for (const url of listingUrls) {
-      if (records.length >= MAX_NUMBERS) break;
+  // Randomly select 5 massive global domains per scrape to avoid extreme rate limiting
+  const shuffledDomains = TELLOWS_DOMAINS.sort(() => 0.5 - Math.random()).slice(0, 5);
+  console.log(`[tellows] Scanning global regions: ${shuffledDomains.map(d => d.replace('https://www.tellows.', '')).join(', ')}`);
 
-      const { $, text } = await fetchWithStealth(url);
-      
-      // Look for links to phone numbers or raw numbers in text
-      const links = [];
+  const listingUrls = shuffledDomains.flatMap(domain => [
+    `${domain}`,
+    `${domain}statistics/most-searched-numbers`,
+    `${domain}recent-comments`
+  ]);
+
+
+  for (const url of listingUrls) {
+    if (records.length >= MAX_NUMBERS) break;
+
+    let $, text;
+    try {
+      ({ $, text } = await fetchWithStealth(url));
+    } catch (err) {
+      console.warn(`[tellows] Could not connect to region: ${url}. Error: ${err.message}`);
+      continue;
+    }
+    
+    // Look for links to phone numbers or raw numbers in text
+    const links = [];
       $('a[href]').each((_, el) => {
         const href = $(el).attr('href') || '';
         if (/\/num\//.test(href) || /\/number\//.test(href)) {
@@ -45,10 +60,14 @@ async function scrapeTellows() {
 
       const uniqueLinks = [...new Set(links)];
 
+      // Determine the base url of the page we just scraped
+      const urlObj = new URL(url);
+      const currentBaseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
+
       for (let href of uniqueLinks) {
         if (records.length >= MAX_NUMBERS) break;
 
-        const fullUrl = href.startsWith('http') ? href : `${BASE_URL}${href}`;
+        const fullUrl = href.startsWith('http') ? href : `${currentBaseUrl}${href.startsWith('/') ? '' : '/'}${href}`;
         // Extract number from URL (e.g. /num/01234 or /num/US/1234)
         const phoneMatch = href.match(/[\d\-+()]{7,20}/);
         if (!phoneMatch) continue;
@@ -91,9 +110,6 @@ async function scrapeTellows() {
         await sleep(DELAY_MS);
       }
     }
-  } catch (err) {
-    console.warn(`[tellows] Error: ${err.message}`);
-  }
 
   console.log(`[tellows] Done — ${records.length} records`);
   return records;
