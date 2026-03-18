@@ -47,9 +47,9 @@ Use this skill when the user:
 | `lookup <number>` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js lookup <number>` |
 
 **CEO-Level Commands:**
-If the user asks for a high-level summary, use the `stats` command.
-Example: `@bot threat report for today` -> Run `stats` and summarize: *"I scanned 14 sources today. Found X new spam numbers... Primary scam recognized: Y..."*
-Example: `@bot analyze risk for <number>` -> Run `lookup <number>` and give a professional risk assessment (e.g. *"🚨 HIGH CONFIDENCE SPAM..."*).
+If the user asks for a high-level summary of the spam database, use the `stats` command.
+Example: `@bot give me the spam database report` or `@bot summarize spam numbers for today` -> Run `stats` and summarize: *"I scanned 14 sources today. Found X new spam numbers... Primary scam recognized: Y..."*
+Example: `@bot analyze spam risk for <number>` -> Run `lookup <number>` and give a professional risk assessment (e.g. *"🚨 HIGH CONFIDENCE SPAM..."*).
 
 
 **Live Progress Tracking:**

@@ -1,0 +1,38 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -t -o StrictHostKeyChecking=no $user@$host
+
+expect "*password:*"
+send "$password\r"
+
+expect "*#*"
+
+# Make sure agent has a clean memory to read the new SKILL.md rules
+send "rm -rf /root/.openclaw/agents/main/sessions/*\r"
+expect "*#*"
+send "systemctl --user restart openclaw-gateway.service\r"
+expect "*#*"
+sleep 15
+
+# Enter TUI
+send "openclaw tui\r"
+sleep 20
+
+# Test 1: High Level Threat Report (CEO Command)
+send_user "\n(ACTION: Testing CEO Threat Report Command...)\n"
+send "give me the threat report for today\r"
+sleep 45
+
+# Test 2: Risk Assessment (CEO Command)
+send_user "\n(ACTION: Testing Risk Analysis on a specific number...)\n"
+send "analyze risk for +18005551234\r"
+sleep 45
+
+send "\x03"
+expect "*#*"
+send "exit\r"
+expect eof
