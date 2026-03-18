@@ -16,7 +16,6 @@
     "libphonenumber-js": "^1.11.4",
     "node-cron": "^3.0.3",
     "node-fetch": "^2.7.0",
-    "puppeteer": "^24.39.1",
     "puppeteer-core": "^24.39.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"

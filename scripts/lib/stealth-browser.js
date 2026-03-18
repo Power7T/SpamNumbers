@@ -1,6 +1,7 @@
 'use strict';
 
-const puppeteer = require('puppeteer-extra');
+const { addExtra } = require('puppeteer-extra');
+const puppeteer = addExtra(require('puppeteer-core'));
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const cheerio = require('cheerio');
 const fs = require('fs');
@@ -17,8 +18,7 @@ async function fetchWithStealth(url) {
     executablePath = '/usr/bin/chromium';
   }
 
-  const browser = await puppeteer.launch({
-    executablePath, // will use bundled if undefined, but good for Ubuntu
+  const launchArgs = {
     headless: 'new',
     args: [
       '--no-sandbox', 
@@ -27,7 +27,16 @@ async function fetchWithStealth(url) {
       '--disable-gpu',
       '--window-size=1920,1080'
     ],
-  });
+  };
+
+  if (executablePath) {
+    launchArgs.executablePath = executablePath;
+  } else {
+    // Fallback for local development (macOS/Windows) if chromium isn't in /usr/bin/
+    launchArgs.channel = 'chrome';
+  }
+
+  const browser = await puppeteer.launch(launchArgs);
 
   try {
     const page = await browser.newPage();
