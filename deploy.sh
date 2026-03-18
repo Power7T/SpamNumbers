@@ -58,12 +58,18 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-npm install --silent
-if [ $? -eq 0 ]; then
+# Attempt standard install
+if npm install --silent; then
     echo "   ✅ Dependencies installed successfully"
 else
-    echo "   ❌ npm install failed"
-    exit 1
+    echo "   ⚠️ Standard npm install failed. Attempting to fix build environment..."
+    if command -v apt-get >/dev/null; then
+        echo "   🔧 Installing build-essential and python3..."
+        sudo apt-get update -y && sudo apt-get install -y build-essential python3 || true
+    fi
+    echo "   🔧 Rebuilding better-sqlite3 from source..."
+    npm install --build-from-source better-sqlite3 --silent || npm rebuild better-sqlite3 --build-from-source
+    echo "   ✅ Native modules rebuilt"
 fi
 echo ""
 
