@@ -5,9 +5,8 @@ const { scrapeGithubLists } = require('./scrapers/githubLists');
 const { scrapeNomoroboList } = require('./scrapers/nomoroboList');
 const { scrapeTellows } = require('./scrapers/tellows');
 const { scrapeSyncMe } = require('./scrapers/syncme');
-const { scrapeFtcCsv } = require('./scrapers/ftcDnc');
-const { scrapeFtcApi } = require('./scrapers/ftcApi');
 const { scrapeValidators } = require('./scrapers/validatorApis');
+const { hunt } = require('./scrapers/webHunter');
 const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
@@ -26,17 +25,14 @@ const SCRAPERS = [
   { name: 'spamcalls',     fn: (db) => scrapeSpamCalls() },
   { name: 'tellows',       fn: (db) => scrapeTellows() },
   { name: 'syncme',        fn: (db) => scrapeSyncMe() },
-  { name: 'ftc_csv',      fn: (db) => scrapeFtcCsv(db) },
-  { name: 'ftc_api',      fn: (db) => scrapeFtcApi() },
   { name: 'validators',   fn: (db) => scrapeValidators(db) },
   { name: 'nomorobolist',  fn: (db) => scrapeNomoroboList() },
-
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
-const PARALLEL_GROUP_1 = ['github', 'ftc_csv', 'ftc_api'];
+const PARALLEL_GROUP_1 = ['github', 'nomorobolist'];
 const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'syncme'];
-const PARALLEL_GROUP_3 = ['nomorobolist', 'validators'];
+const PARALLEL_GROUP_3 = ['validators'];
 
 const MAX_RETRIES = 2;
 const RETRY_DELAYS = [2000, 5000]; // 2s, 5s backoff
@@ -221,4 +217,17 @@ async function runAll(db, options = {}) {
   return { totalNew, totalUpdated, errors };
 }
 
-module.exports = { runAll };
+/**
+ * Run the autonomous web hunter to discover new spammers.
+ */
+async function runHunt(db) {
+  const records = await hunt(db);
+  if (records.length === 0) {
+    return { discovered: 0 };
+  }
+  const { newCount, updatedCount } = upsertManyFromScraper(db, records);
+  updateScraperHealth(db, 'web_hunter', records.length);
+  return { discovered: records.length, newCount, updatedCount };
+}
+
+module.exports = { runAll, runHunt };

@@ -39,6 +39,76 @@ const RAW_URLS = [
     notesCol: -1,
     country: 'UK',
   },
+  // GLOBAL GOLDMINE: Swyter/call-spam-blocklist (1,200+ numbers)
+  {
+    url: 'https://raw.githubusercontent.com/Swyter/call-spam-blocklist/master/spam_numbers.csv',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // GLOBAL GOLDMINE: sundowndev/phone-number-based-spam-list (2,500+ numbers)
+  {
+    url: 'https://raw.githubusercontent.com/sundowndev/phone-number-based-spam-list/master/spam_numbers.csv',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // GLOBAL GOLDMINE: openix consolidated blacklist (Thousands)
+  {
+    url: 'https://raw.githubusercontent.com/openix/blacklist/main/blacklist/blacklist',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // USER REQUESTED: nicowillis/spam-phone-numbers
+  {
+    url: 'https://raw.githubusercontent.com/nicowillis/spam-phone-numbers/main/numbers.txt',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // USER REQUESTED: dSolver/phone-spam-list
+  {
+    url: 'https://raw.githubusercontent.com/dSolver/phone-spam-list/master/spam_numbers.csv',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // USER REQUESTED: ab77/bofh-blacklist
+  {
+    url: 'https://raw.githubusercontent.com/ab77/bofh-blacklist/master/blacklist',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // NEW 2024-2025: jsadeli spam callers
+  {
+    url: 'https://gist.githubusercontent.com/jsadeli/6e2bf66bd02c9c444acdc3c8f605b50e/raw/spam-callers.txt',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'Global',
+  },
+  // NEW 2024-2025: mv12star Spanish Spam List (Updated daily)
+  {
+    url: 'https://raw.githubusercontent.com/mv12star/lista-telefonos-spam/main/numeros_spam_dialer.txt',
+    hasHeader: false,
+    phoneCol: 0,
+    notesCol: -1,
+    country: 'ES',
+  },
+  // NEW 2024-2025: iP1SMS Disposable Numbers
+  {
+    url: 'https://raw.githubusercontent.com/iP1SMS/disposable-phone-numbers/master/number-list.json',
+    isJSON: true,
+    country: 'Global',
+  },
   // Canada/NA — fed135/phone-blacklist
   {
     url: 'https://raw.githubusercontent.com/fed135/phone-blacklist/master/data/list.csv',
@@ -47,16 +117,7 @@ const RAW_URLS = [
     notesCol: 1,
     country: 'CA',
   },
-  // Hungary/EU — laci37/otp-spam
-  {
-    url: 'https://raw.githubusercontent.com/laci37/otp-spam/master/data.csv',
-    hasHeader: true,
-    phoneCol: 0, // Assuming phone is in col 0
-    notesCol: 1,
-    country: 'HU',
-  },
   // International — greyhat-academy/lists.d (TSV format)
-  // Format: phone\tnotes (tab-separated)
   {
     url: 'https://raw.githubusercontent.com/greyhat-academy/lists.d/main/spammers.phone.numbers.list.tsv',
     hasHeader: true,
@@ -79,7 +140,18 @@ function looksLikePhone(s) {
  * Returns an array of { raw, notes } objects.
  */
 function parseBody(srcConfig, body) {
-  const { hasHeader = false, phoneCol = 0, notesCol = -1 } = srcConfig;
+  const { hasHeader = false, phoneCol = 0, notesCol = -1, isJSON = false } = srcConfig;
+
+  if (isJSON) {
+    try {
+      const data = JSON.parse(body);
+      // Map JSON keys as phone numbers (used by iP1SMS)
+      return Object.keys(data).map(phone => ({ raw: phone, notes: data[phone] || '' }));
+    } catch (e) {
+      console.warn(`[github] Failed to parse JSON body: ${e.message}`);
+      return [];
+    }
+  }
 
   const lines = body
     .split(/\r?\n/)

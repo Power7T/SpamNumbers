@@ -1,6 +1,6 @@
 ---
 name: spam-numbers
-description: "Maintain and query a local SQLite database of spam/scam phone numbers scraped from 14 public sources (FTC, 800notes, Nomorobo, GitHub lists, etc). Commands: 'scrape' (update database from all sources), 'stats' (show total counts), 'export' (CSV export), 'lookup <number>' (check if spam), 'schedule' (weekly auto-update). The word 'scrape' alone means run the spam-numbers scraper. No API keys required."
+description: "Maintain and query a local SQLite database of spam/scam phone numbers scraped from 16+ community OSINT sources (Tellows, SyncMe, Nomorobo, GitHub lists, etc). Commands: 'scrape' (update database from all sources), 'stats' (show total counts), 'export' (CSV export), 'lookup <number>' (check if spam), 'schedule' (weekly auto-update). The word 'scrape' alone means run the spam-numbers scraper. No API keys required."
 metadata:
   openclaw:
     emoji: "📵"
@@ -12,7 +12,7 @@ metadata:
 
 # Spam Numbers Skill
 
-Maintain a local database of spam phone numbers collected from 14 free public sources (US, UK, France/EU, Global). Numbers not in the local database are checked against the SkipCalls API for broader international coverage. Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
+Maintain a local database of spam phone numbers collected from 17+ community-driven public sources (US, UK, France/EU, Global). Numbers not in the local database are checked against the SkipCalls API for broader international coverage. Look up any number instantly, run scans on demand, export to CSV, or run fully automatically every week.
 
 ## When to Use
 
@@ -24,6 +24,7 @@ Use this skill when the user:
 - Wants to scan and update the spam database from all sources
 - Wants to export the spam number list to a CSV file
 - Wants to see statistics about the spam database
+- Wants to run the **Autonomous Hunter** to find numbers from across the web
 - Wants to start the automatic weekly update scheduler
 - Asks about known scam or robocall numbers from any country
 
@@ -50,6 +51,7 @@ Use this skill when the user:
 | `schedule daily` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule daily` |
 | `schedule weekly` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule weekly` |
 | `status` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js status` |
+| `hunt` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js hunt` |
 | `lookup <number>` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js lookup <number>` |
 
 **CEO-Level Commands:**
@@ -167,7 +169,8 @@ Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this 
 
 | Source | Region | Type | Weight |
 |--------|--------|------|--------|
-| FTC DNC API | US | REST API | 1.0 (highest trust) |
+| Tellows Global | Global | OSINT Scraping | 0.8 |
+| SyncMe Index | Global | HTML Scraping | 0.7 |
 | 800notes.com | US | HTML scraping | 0.7 |
 | Should I Answer | US/International | HTML scraping | 0.7 |
 | YouMail Robocall Index | US | HTML scraping | 0.6 |
@@ -176,12 +179,13 @@ Runs a full scan immediately, then auto-repeats every Sunday at 2 AM. Keep this 
 | CallerCenter.com | US | HTML scraping | 0.6 |
 | SpamCalls.net | US/International | HTML scraping | 0.5 |
 | Nomorobo Top Robocallers | US | HTML scraping | 0.5 |
+| iP1SMS Disposable List | Global | GitHub JSON | 0.5 |
+| jsadeli/spam-callers | Global | GitHub Gist | 0.4 |
+| mv12star/telefonos-spam | Spain/EU | GitHub Daily | 0.4 |
 | jwoertink/blocked-numbers | US | GitHub CSV | 0.4 |
 | Oros42/phone-blacklist | France/EU | GitHub CSV | 0.4 |
 | bretmlw/uk-phone-scam-numbers | UK | GitHub TXT | 0.4 |
-| greyhat-academy/lists.d | Global | GitHub TSV | 0.4 |
-| Swyter/call-spam-blocklist | Global | GitHub CSV | 0.4 |
-| sundowndev/phone-number-based-spam-list | Global | GitHub CSV | 0.4 |
+| openix/consolidated-blacklist | Global | GitHub Multi | 0.4 |
 | SkipCalls API (lookup fallback) | International | Free REST API | — |
 
 ## Core Rules

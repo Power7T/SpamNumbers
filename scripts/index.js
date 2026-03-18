@@ -21,9 +21,7 @@ const { getDb, closeDb } = require('./db/connection');
 const { initSchema } = require('./db/schema');
 const { lookupNumber, bulkLookup, whitelistNumber, unwhitelistNumber, decayStaleData, getStats } = require('./db/queries');
 const { normalizePhone } = require('./normalizer');
-const { runAll } = require('./orchestrator');
-const { getMissingFtcDates } = require('./db/queries');
-const { importFtcHistory } = require('./import-ftc-history');
+const { runAll, runHunt } = require('./orchestrator');
 const { exportToCsv } = require('./exporter');
 const { startScheduler } = require('./scheduler');
 const { closeStealthBrowser } = require('./lib/stealth-browser');
@@ -119,15 +117,13 @@ COMMANDS
   schedule            Start weekly auto-scheduler (long-running)
   status              Show live progress of the current scrape run
   stats               Show database statistics + scraper health
+  hunt                Autonomous OSINT discovery (Hunts the web for new spammers)
 
-  history             Find gaps in FTC data and prompt for backfill
-  config <p> <v>      Set API keys (NUMVERIFY_API_KEY, ABSTRACT_API_KEY, FTC_API_KEY)
+  config <p> <v>      Set API keys (NUMVERIFY_API_KEY, ABSTRACT_API_KEY)
 
 API VALIDATION
-  FTC API (api.data.gov) provides real-time access to DNC complaints.
   NumVerify and AbstractAPI offer free tiers (100-250/mo) for carrier info.
   To enable:
-    export FTC_API_KEY="your_key"
     export NUMVERIFY_API_KEY="your_key"
     export ABSTRACT_API_KEY="your_key"
     node index.js scrape
@@ -256,7 +252,6 @@ async function main() {
         const question = (q) => new Promise((resolve) => rl.question(q, resolve));
 
         const keysToCheck = [
-          { env: 'FTC_API_KEY', name: 'FTC DNC Complaints API', skipEnv: 'SKIP_FTC_API' },
           { env: 'NUMVERIFY_API_KEY', name: 'NumVerify Validator API', skipEnv: 'SKIP_NUMVERIFY_API' },
           { env: 'ABSTRACT_API_KEY', name: 'Abstract Validator API', skipEnv: 'SKIP_ABSTRACT_API' },
         ];
@@ -280,6 +275,15 @@ async function main() {
         rl.close();
 
         await runAll(db);
+        break;
+      }
+
+      case 'hunt': {
+        console.log('\n🏹 Starting Autonomous OSINT Hunt...');
+        const result = await runHunt(db);
+        console.log(`\n✅ Hunt Complete!`);
+        console.log(`   Discovered: ${result.discovered} numbers`);
+        console.log(`   New to DB:  ${result.newCount || 0}`);
         break;
       }
 
@@ -426,7 +430,7 @@ async function main() {
       case 'config': {
         const key = (args[0] || '').toUpperCase();
         const val = args[1] || '';
-        const validKeys = ['NUMVERIFY_API_KEY', 'ABSTRACT_API_KEY', 'FTC_API_KEY'];
+        const validKeys = ['NUMVERIFY_API_KEY', 'ABSTRACT_API_KEY'];
         if (!key || !validKeys.includes(key)) {
           console.error(`Usage: node index.js config <${validKeys.join('|')}> <value>`);
           process.exit(1);
@@ -436,34 +440,6 @@ async function main() {
         break;
       }
 
-      case 'history': {
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        const question = (q) => new Promise((resolve) => rl.question(q, resolve));
-
-        const gaps = getMissingFtcDates(db, 30);
-        if (gaps.length > 0) {
-          console.log(`\n🔎 Found ${gaps.length} missing dates in your FTC CSV archives (past 30 days):`);
-          console.log(`  ${gaps.slice(0, 5).join(', ')}${gaps.length > 5 ? '...' : ''}`);
-          const answer = await question(`Do you want to fill these missing gaps now? (y/n/custom): `);
-          
-          if (answer.toLowerCase() === 'y') {
-            rl.close();
-            // We'll run history script with custom list (in a real app we'd pass gaps)
-            // For now, let's just run the standard historical script (which checks last 12)
-            await importFtcHistory();
-            break;
-          } else if (answer.toLowerCase() === 'custom') {
-              const start = await question('Start Date (YYYY-MM-DD): ');
-              const end = await question('End Date (YYYY-MM-DD): ');
-              console.log(`\nImporting from ${start} to ${end}...`);
-              // In this case, we could call importFtcHistory with custom range if we refactored it
-          }
-        } else {
-          console.log('\n✅ Your FTC historical data is complete for the last 30 days!');
-        }
-        rl.close();
-        break;
-      }
 
       default: {
         console.error(`Unknown command: "${command}"`);

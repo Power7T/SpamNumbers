@@ -1,8 +1,6 @@
 'use strict';
 
-// Source reliability weights (government > crowdsourced > community lists)
 const SOURCE_WEIGHTS = {
-  ftc:           1.0,   // US government data — highest trust
   '800notes':    0.7,   // Large crowdsourced community
   shouldianswer: 0.7,
   youmail:       0.6,
@@ -13,8 +11,8 @@ const SOURCE_WEIGHTS = {
   nomorobolist:  0.5,   // Nomorobo public robocall list
   tellows:       0.5,
   syncme:        0.5,
-  ftc_api:       0.9,   // Direct government API — high trust
   github:        0.4,   // Community-maintained, less verified
+  web_hunter:    0.6,   // Discovered OSINT lists
 };
 
 /**
@@ -382,23 +380,28 @@ module.exports = {
   insertRunLog,
   finalizeRunLog,
   SOURCE_WEIGHTS,
-  getMissingFtcDates: (db, days = 180) => {
-    // Returns days in the last N days where we have 0 ftc_csv records
-    const dates = [];
-    for (let i = 0; i < days; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const iso = d.toISOString().slice(0, 10);
-        // Skip weekends for FTC CSV (they don't publish them usually)
-        const day = d.getDay();
-        if (day === 0 || day === 6) continue; 
-        
-        const count = db.prepare("SELECT COUNT(*) as count FROM spam_sources WHERE source = 'ftc_csv' AND date(scraped_at) = ?").get(iso).count;
-        if (count === 0) dates.push(iso);
-    }
-    return dates;
+  purgeFtcData: (db) => {
+    // Delete all records from sources that match FTC
+    const sourceDel = db.prepare("DELETE FROM spam_sources WHERE source LIKE 'ftc%'");
+    const info = sourceDel.run();
+    
+    // Clean up numbers that no longer have any sources
+    db.prepare(`
+      DELETE FROM spam_numbers
+      WHERE phone_number NOT IN (SELECT DISTINCT phone_number FROM spam_sources)
+      AND is_whitelisted = 0
+    `).run();
+
+    // Re-check source counts for remaining numbers
+    db.prepare(`
+      UPDATE spam_numbers SET
+      source_count = (SELECT COUNT(*) FROM spam_sources WHERE spam_sources.phone_number = spam_numbers.phone_number)
+    `).run();
+
+    db.exec('VACUUM;');
+    return info.changes;
   },
   clearStaleHealth: (db) => {
-    db.prepare("DELETE FROM scraper_health WHERE source NOT IN ('github', 'spamcalls', 'tellows', 'syncme', 'nomorobolist', 'ftc_api', 'ftc_csv')").run();
+    db.prepare("DELETE FROM scraper_health WHERE source NOT IN ('github', 'spamcalls', 'tellows', 'syncme', 'nomorobolist', 'web_hunter', 'validator_apis')").run();
   }
 };

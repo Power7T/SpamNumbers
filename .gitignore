@@ -7,3 +7,5 @@ scripts/exports/
 *.db-wal
 .env
 AI_HANDOVER_BLUEPRINT.md
+latest-scrape-progress.log
+*.log
