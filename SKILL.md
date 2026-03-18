@@ -1,6 +1,6 @@
 ---
 name: spam-numbers
-description: "Scan public internet sources for spam caller databases, store numbers with metadata in a local SQLite database, and look up whether any phone number is flagged as spam. Covers US, UK, France/EU, and global numbers via local scrapers plus international lookup via SkipCalls API. Sources include FTC, 800notes, Should I Answer, YouMail, SkipCalls, WhoCallsMe, CallerCenter, Nomorobo, and verified GitHub community lists. No API keys required."
+description: "Maintain and query a local SQLite database of spam/scam phone numbers scraped from 14 public sources (FTC, 800notes, Nomorobo, GitHub lists, etc). Commands: 'scrape' (update database from all sources), 'stats' (show total counts), 'export' (CSV export), 'lookup <number>' (check if spam), 'schedule' (weekly auto-update). The word 'scrape' alone means run the spam-numbers scraper. No API keys required."
 metadata:
   openclaw:
     emoji: "📵"
@@ -17,6 +17,9 @@ Maintain a local database of spam phone numbers collected from 14 free public so
 ## When to Use
 
 Use this skill when the user:
+- Says **"scrape"** or **"scan"** alone — this means run the spam-numbers scraper immediately
+- Says **"stats"** or **"total numbers"** — show DB statistics
+- Says **"export"** — export DB to CSV
 - Asks if a phone number is spam, scam, or robocall (e.g. "is 800-555-1234 spam?", "check +44 20 7946 0958")
 - Wants to scan and update the spam database from all sources
 - Wants to export the spam number list to a CSV file
