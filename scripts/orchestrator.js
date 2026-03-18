@@ -7,6 +7,9 @@ const { scrapeTellows } = require('./scrapers/tellows');
 const { scrapeSyncMe } = require('./scrapers/syncme');
 const { scrapeValidators } = require('./scrapers/validatorApis');
 const { hunt } = require('./scrapers/webHunter');
+const { scrapeForums } = require('./scrapers/forumLists');
+const { scrapeYouMail } = require('./scrapers/youmail');
+const { scrapeShouldIAnswer } = require('./scrapers/shouldianswer');
 const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
@@ -27,11 +30,14 @@ const SCRAPERS = [
   { name: 'syncme',        fn: (db) => scrapeSyncMe() },
   { name: 'validators',   fn: (db) => scrapeValidators(db) },
   { name: 'nomorobolist',  fn: (db) => scrapeNomoroboList() },
+  { name: 'forums',        fn: (db) => scrapeForums() },
+  { name: 'youmail',       fn: (db) => scrapeYouMail() },
+  { name: 'shouldianswer', fn: (db) => scrapeShouldIAnswer() },
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
 const PARALLEL_GROUP_1 = ['github', 'nomorobolist'];
-const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'syncme'];
+const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'syncme', 'forums', 'youmail', 'shouldianswer'];
 const PARALLEL_GROUP_3 = ['validators'];
 
 const MAX_RETRIES = 2;
