@@ -7,7 +7,9 @@
     "scrape": "node index.js scrape",
     "export": "node index.js export",
     "schedule": "node index.js schedule",
-    "stats": "node index.js stats"
+    "stats": "node index.js stats",
+    "rebuild": "npm rebuild better-sqlite3 --build-from-source",
+    "postinstall": "node -e 'try { require(\"better-sqlite3\") } catch (e) { console.log(\"Native build missing, running rebuild...\"); }' || npm run rebuild"
   },
   "dependencies": {
     "better-sqlite3": "^9.6.0",

@@ -1,0 +1,47 @@
+#!/usr/bin/expect -f
+set password "CprT0IzeY4Ww2PgeMII9S"
+set host "85.208.51.22"
+set user "root"
+
+set timeout 300
+spawn ssh -o StrictHostKeyChecking=no $user@$host
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+
+expect "root@*#"
+
+# 1. Clean up old skill and source
+send "rm -rf ~/.openclaw/workspace/skills/spam-numbers\r"
+expect "root@*#"
+send "rm -rf ~/SpamNumbers\r"
+expect "root@*#"
+
+# 2. Fresh clone (Ensure we have the latest 3f67854 commit)
+send "git clone -b claude/spam-numbers-skill-QYyQx https://github.com/Power7T/SpamNumbers.git ~/SpamNumbers\r"
+expect "root@*#"
+
+# 3. Fix Ubuntu Build Environment
+send "sudo apt-get update && sudo apt-get install -y build-essential python3\r"
+expect "root@*#"
+
+# 4. Deploy and Rebuild Native Modules
+send "cd ~/SpamNumbers && bash deploy.sh\r"
+# Skip those pesky prompts if they appear
+expect {
+    "Enter key (or \"skip\" to ignore this time, or \"permanent\" to never ask again):" {
+        send "skip\r"
+        exp_continue
+    }
+    "root@*#"
+}
+
+# 5. Final Verification
+send "node index.js stats\r"
+expect "root@*#"
+
+send "exit\r"
+expect eof
