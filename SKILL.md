@@ -35,12 +35,7 @@ Use this skill when the user:
 
 **User Query Handling Rules:**
 - DO NOT EXPLAIN OR CHAT UNLESS REQUIRED. Just execute the exact script and output the result.
-- If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a bulleted list of all the things you can do (e.g., "I am the Spam Numbers agent. Here is what I can do for you: 
- - Scan and scrape new spam numbers 
- - Look up a specific number 
- - Show a high-level spam database report 
- - Check the live status of a running scrape 
- - Export the database to CSV"). 
+- If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a numbered list of all the things you can do (e.g., "I am the Spam Numbers agent. Here is what I can do for you: \n 1. Scan and add new spam numbers \n 2. Show a high-level spam database report \n 3. Check the live status of a running task \n 4. Export the database to CSV \n 5. Look up a specific number"). 
 - Do not make up non-existent flags. Only use the commands mapped in the table.
 
 ## Agent Quick Commands
