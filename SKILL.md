@@ -35,7 +35,7 @@ Use this skill when the user:
 
 **User Query Handling Rules:**
 - DO NOT EXPLAIN OR CHAT UNLESS REQUIRED. Just execute the exact script and output the result.
-- If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a numbered list of all the things you can do (e.g., "I am the Spam Numbers agent. Here is what I can do for you: \n 1. Scan and add new spam numbers \n 2. Show a high-level spam database report \n 3. Check the live status of a running task \n 4. Export the database to CSV \n 5. Look up a specific number"). 
+- If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a numbered list of all the things you can do (e.g., "I am the Spam Numbers agent. Here is what I can do for you: \n 1. Scan and add new spam numbers \n 2. Show a high-level spam database report \n 3. Check the live status of a running task \n 4. Export the database to CSV \n 5. Look up a specific number \n 6. Schedule daily or weekly automatic updates"). 
 - Do not make up non-existent flags. Only use the commands mapped in the table.
 
 ## Agent Quick Commands
@@ -47,7 +47,8 @@ Use this skill when the user:
 | `scrape` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js scrape` |
 | `stats` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js stats` |
 | `export` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js export` |
-| `schedule` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule` |
+| `schedule daily` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule daily` |
+| `schedule weekly` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule weekly` |
 | `status` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js status` |
 | `lookup <number>` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js lookup <number>` |
 

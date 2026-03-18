@@ -392,9 +392,15 @@ async function main() {
       }
 
       case 'schedule': {
-        await startScheduler(db);
-        return;
+        const frequency = args[0] || 'weekly';
+        if (!['daily', 'weekly'].includes(frequency)) {
+          console.error('Invalid frequency. Use "daily" or "weekly".');
+          process.exit(1);
+        }
+        await startScheduler(db, frequency);
+        break;
       }
+
 
       case 'status': {
         const logPath = path.join(__dirname, 'latest-scrape-progress.log');

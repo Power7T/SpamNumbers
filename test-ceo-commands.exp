@@ -11,7 +11,7 @@ send "$password\r"
 
 expect "*#*"
 
-# Make sure agent has a clean memory to read the new SKILL.md rules
+# Make sure agent reads the new instructions
 send "rm -rf /root/.openclaw/agents/main/sessions/*\r"
 expect "*#*"
 send "systemctl --user restart openclaw-gateway.service\r"
@@ -22,14 +22,9 @@ sleep 15
 send "openclaw tui\r"
 sleep 20
 
-# Test 1: High Level Threat Report (CEO Command)
-send_user "\n(ACTION: Testing CEO Threat Report Command...)\n"
-send "give me the threat report for today\r"
-sleep 45
-
-# Test 2: Risk Assessment (CEO Command)
-send_user "\n(ACTION: Testing Risk Analysis on a specific number...)\n"
-send "analyze risk for +18005551234\r"
+# Test 1: "spam" menu trigger
+send_user "\n(ACTION: Testing the 'spam' keyword trigger...)\n"
+send "spam\r"
 sleep 45
 
 send "\x03"
