@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw | Spam Discovery Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="glow"></div>
+    
+    <nav class="glass">
+        <div class="logo">
+            <span class="claws">///</span> OPENCLAW <span>SPAM-RADAR</span>
+        </div>
+        <div class="status">
+            <span class="pulse"></span> LIVE OSINT STREAMING
+        </div>
+    </nav>
+
+    <main>
+        <!-- STATS GRID -->
+        <section class="stats-grid">
+            <div class="card glass">
+                <h3>Total Spammers</h3>
+                <h1 id="total-count">0</h1>
+                <p>Global OSINT Local Cache</p>
+            </div>
+            <div class="card glass">
+                <h3>Countries Tracked</h3>
+                <h1 id="country-count">0</h1>
+                <p>Regions with Active Threats</p>
+            </div>
+            <div class="card glass">
+                <h3>Verified Sources</h3>
+                <h1 id="source-count">0</h1>
+                <p>Community Databases Integrated</p>
+            </div>
+            <div class="card glass">
+                <h3>Last Global Scrape</h3>
+                <p id="last-run">Just now</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="sync-progress"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEARCH BAR -->
+        <section class="search-section glass">
+            <input type="text" id="search-input" placeholder="Enter phone number to instantly verify (e.g. +1800...)" autocomplete="off">
+            <button id="search-btn">CHECK OSINT</button>
+            <div id="search-results"></div>
+        </section>
+
+        <!-- ACTIVITY GRID -->
+        <div class="activity-container">
+            <section class="table-card glass">
+                <div class="card-header">
+                    <h2>Live OSINT Feed</h2>
+                    <span class="badge">LATEST REPORTS</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Number</th>
+                            <th>Threat Score</th>
+                            <th>Type</th>
+                            <th>Country</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="latest-table">
+                        <!-- Content via JS -->
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="chart-card glass">
+                <div class="card-header">
+                    <h2>Threat Distribution</h2>
+                </div>
+                <canvas id="sourceChart"></canvas>
+            </section>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -5,6 +5,7 @@
   "main": "scripts/index.js",
   "scripts": {
     "scrape": "node scripts/index.js scrape",
+    "dashboard": "node scripts/api.js",
     "schedule:daily": "node scripts/index.js schedule daily",
     "schedule:weekly": "node scripts/index.js schedule weekly"
   },
@@ -13,13 +14,15 @@
   "dependencies": {
     "better-sqlite3": "^9.4.0",
     "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.6",
     "csv-stringify": "^6.4.6",
     "dotenv": "^16.4.5",
+    "express": "^5.2.1",
     "google-libphonenumber": "^3.2.44",
+    "morgan": "^1.10.1",
     "node-cron": "^3.0.3",
     "puppeteer": "^24.39.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
-

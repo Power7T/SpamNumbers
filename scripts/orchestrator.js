@@ -31,13 +31,12 @@ const SCRAPERS = [
   { name: 'validators',   fn: (db) => scrapeValidators(db) },
   { name: 'nomorobolist',  fn: (db) => scrapeNomoroboList() },
   { name: 'forums',        fn: (db) => scrapeForums() },
-  { name: 'youmail',       fn: (db) => scrapeYouMail() },
   { name: 'shouldianswer', fn: (db) => scrapeShouldIAnswer() },
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
 const PARALLEL_GROUP_1 = ['github', 'nomorobolist'];
-const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'syncme', 'forums', 'youmail', 'shouldianswer'];
+const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'forums', 'shouldianswer'];
 const PARALLEL_GROUP_3 = ['validators'];
 
 const MAX_RETRIES = 2;

@@ -16,19 +16,15 @@ async function scrapeTellows() {
   const seen = new Set();
 
   const TELLOWS_DOMAINS = [
-    // North America & UK
-    'https://www.tellows.com/', 'https://www.tellows.co.uk/', 'https://www.tellows.ca/',
-    // Europe
+    // North America & UK (The most reliable)
+    'https://www.tellows.com/', 'https://www.tellows.co.uk/',
+    // Europe (Core hubs)
     'https://www.tellows.de/', 'https://www.tellows.it/', 'https://www.tellows.fr/', 
     'https://www.tellows.es/', 'https://www.tellows.at/', 'https://www.tellows.ch/',
-    'https://www.tellows.pl/', 'https://www.tellows.be/', 'https://www.tellows.gr/',
-    // LatAm
-    'https://www.tellows.com.br/', 'https://www.tellows.com.mx/', 'https://www.tellows.cl/',
-    // Asia & ME
-    'https://www.tellows.in/', 'https://www.tellows.com.eg/', 'https://www.tellows.ru/',
-    'https://www.tellows.asia/', 'https://www.tellows.com.tr/', 'https://www.tellows.sg/',
-    // Oceania & Africa
-    'https://www.tellows.co.nz/', 'https://www.tellows.co.za/'
+    'https://www.tellows.pl/', 'https://www.tellows.be/',
+    // Active Emerging Markets
+    'https://www.tellows.com.br/', 'https://www.tellows.com.mx/', 'https://www.tellows.in/', 
+    'https://www.tellows.co.za/'
   ];
 
   // Randomly select 5 massive global domains per scrape to avoid extreme rate limiting

@@ -11,12 +11,7 @@ const { normalizePhone } = require('../normalizer');
 const SOURCE = 'shouldianswer';
 const TARGET_DOMAINS = [
   'https://www.shouldianswer.com',
-  'https://www.shouldianswer.net',
-  'https://www.chistiamofregando.it',
-  'https://www.quienmehaallamado.es',
-  'https://www.werhatangerufen.com',
-  'https://www.quimappelle.fr',
-  'https://www.inkietujacego.pl'
+  'https://www.shouldianswer.net'
 ];
 
 async function scrapeShouldIAnswer() {
