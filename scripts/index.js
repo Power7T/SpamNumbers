@@ -21,7 +21,7 @@ const { getDb, closeDb } = require('./db/connection');
 const { initSchema } = require('./db/schema');
 const { lookupNumber, bulkLookup, whitelistNumber, unwhitelistNumber, decayStaleData, getStats } = require('./db/queries');
 const { normalizePhone } = require('./normalizer');
-const { runAll, runHunt } = require('./orchestrator');
+const { runAll, runHunt, runDeepCrawl } = require('./orchestrator');
 const { exportToCsv } = require('./exporter');
 const { startScheduler } = require('./scheduler');
 const { closeStealthBrowser } = require('./lib/stealth-browser');
@@ -424,6 +424,14 @@ async function main() {
 
         const stats = getStats(db);
         printStats(stats);
+        break;
+      }
+
+      case 'deep-crawl': {
+        const { discovered, newCount, updatedCount } = await runDeepCrawl(db);
+        console.log(`\n📦 Deep-Crawl Complete!`);
+        console.log(`   Recovered:  ${discovered} historical records`);
+        console.log(`   New entries: ${newCount || 0}`);
         break;
       }
 

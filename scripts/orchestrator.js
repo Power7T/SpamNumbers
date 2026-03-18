@@ -10,6 +10,9 @@ const { hunt } = require('./scrapers/webHunter');
 const { scrapeForums } = require('./scrapers/forumLists');
 const { scrapeYouMail } = require('./scrapers/youmail');
 const { scrapeShouldIAnswer } = require('./scrapers/shouldianswer');
+const { scrapeInternational } = require('./scrapers/international');
+const { scrapeSocialOSINT } = require('./scrapers/twitterScraper');
+const { runHistoricalCrawl } = require('./scrapers/archiveCrawler');
 const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
@@ -32,11 +35,13 @@ const SCRAPERS = [
   { name: 'nomorobolist',  fn: (db) => scrapeNomoroboList() },
   { name: 'forums',        fn: (db) => scrapeForums() },
   { name: 'shouldianswer', fn: (db) => scrapeShouldIAnswer() },
+  { name: 'international', fn: (db) => scrapeInternational() },
+  { name: 'social_hunter', fn: (db) => scrapeSocialOSINT() },
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
 const PARALLEL_GROUP_1 = ['github', 'nomorobolist'];
-const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'forums', 'shouldianswer'];
+const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'forums', 'shouldianswer', 'international', 'social_hunter'];
 const PARALLEL_GROUP_3 = ['validators'];
 
 const MAX_RETRIES = 2;
@@ -235,4 +240,16 @@ async function runHunt(db) {
   return { discovered: records.length, newCount, updatedCount };
 }
 
-module.exports = { runAll, runHunt };
+/**
+ * Perform a deep archive crawl (Historical recovery)
+ */
+async function runDeepCrawl(db) {
+  console.log('[orchestrator] 🚀 Launching DEEP ARCHIVE CRAWL...');
+  const records = await runHistoricalCrawl();
+  if (records.length === 0) return { discovered: 0 };
+  const { newCount, updatedCount } = upsertManyFromScraper(db, records);
+  updateScraperHealth(db, 'deep_crawl', records.length);
+  return { discovered: records.length, newCount, updatedCount };
+}
+
+module.exports = { runAll, runHunt, runDeepCrawl };

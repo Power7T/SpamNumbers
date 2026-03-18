@@ -36,7 +36,9 @@ async function hunt(db) {
     'https://whocallsme.com',
     'https://www.spamcalls.net/en/',
     'https://github.com/topics/spam-blocklist?o=desc&s=updated',
-    'https://github.com/topics/phone-numbers?o=desc&s=updated'
+    'https://github.com/topics/phone-numbers?o=desc&s=updated',
+    'https://gist.github.com/discover',
+    'https://pastebin.com/archive'
   ];
 
   const records = [];
