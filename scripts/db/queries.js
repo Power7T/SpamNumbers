@@ -235,7 +235,6 @@ function deleteNumber(db, phoneNumber) {
 
 /**
  * DEPRECATED: Decay logic removed as per user request.
- * Spam numbers now stay in the database permanently.
  */
 function decayStaleData(db) {
   return { decayed: 0, deleted: 0 };
@@ -359,7 +358,6 @@ module.exports = {
   whitelistNumber,
   unwhitelistNumber,
   deleteNumber,
-  decayStaleData,
   getAllNumbers,
   getStats,
   updateScraperHealth,

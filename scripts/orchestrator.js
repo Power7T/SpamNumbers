@@ -16,7 +16,7 @@ const { scrapeHFDataset } = require('./scrapers/hfHunter');
 const { scrapeSocialOSINT } = require('./scrapers/twitterScraper');
 const { scrapeGistFeed } = require('./scrapers/gistHunter');
 const { runHistoricalCrawl } = require('./scrapers/archiveCrawler');
-const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
+const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
 const path = require('path');
@@ -201,7 +201,7 @@ async function runAll(db, options = {}) {
     }
   }
 
-  // Stale data decay removed as per user request.
+  // Run results summarized below
   
   finalizeRunLog(db, runId, { totalNew, totalUpdated, errors });
 
