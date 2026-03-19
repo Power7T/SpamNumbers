@@ -20,6 +20,7 @@
         <div class="system-status">
             <span class="status-dot"></span>
             DEFCON 3 / OSINT GRID ACTIVE
+            <span id="btn-settings" style="cursor:pointer; margin-left:15px; border:1px solid var(--cyan); padding:2px 8px; border-radius:3px;">⚙️ CONFIG</span>
         </div>
         <div id="clock" class="digital-clock">00:00:00</div>
     </header>
@@ -128,6 +129,29 @@
 
     </main>
 
-    <script src="app.js?v=4"></script>
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="glass-panel target-profile" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%,0); z-index:9999; width:450px; background:rgba(0,0,0,0.85);">
+        <h3>OSINT API SECRETS <span class="badge" style="background:var(--cyan); color:#000;">ENCRYPTED</span></h3>
+        <p style="font-size:0.75rem; color:var(--muted); margin-bottom:15px;">Configure your external threat-intel keys here. These are saved directly to your local `.env` and are never pushed to the cloud.</p>
+        
+        <form id="settings-form">
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:0.7rem; color:var(--cyan); margin-bottom:5px;">[NUMVERIFY_API_KEY]</label>
+                <input type="password" id="key-numverify" placeholder="Required for Advanced Parsing" style="width:100%; border:1px dashed var(--muted); background:transparent; padding:8px; color:#fff; font-family:'Share Tech Mono';">
+            </div>
+            
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-size:0.7rem; color:var(--cyan); margin-bottom:5px;">[ABSTRACT_API_KEY]</label>
+                <input type="password" id="key-abstract" placeholder="Optional details (Skipped if none)" style="width:100%; border:1px dashed var(--muted); background:transparent; padding:8px; color:#fff; font-family:'Share Tech Mono';">
+            </div>
+            
+            <div class="engine-controls">
+               <button type="submit" class="btn-cyber btn-engage" id="btn-save-keys">DEPLOY KEYS</button>
+               <button type="button" class="btn-cyber btn-halt" id="btn-close-settings">CANCEL</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="app.js?v=7"></script>
 </body>
 </html>

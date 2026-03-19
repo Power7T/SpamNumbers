@@ -32,6 +32,11 @@ async function init() {
     document.getElementById('btn-start').addEventListener('click', engageEngine);
     document.getElementById('btn-stop').addEventListener('click', haltEngine);
 
+    // Settings Modal
+    document.getElementById('btn-settings').addEventListener('click', openSettings);
+    document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
+    document.getElementById('btn-save-keys').addEventListener('click', saveSettings);
+
     // Sync loops (fast syncing for "Live" feel)
     setInterval(updateStats, 5000); // 5 sec live sync
     setInterval(fetchLatest, 5000); // 5 sec live sync
@@ -92,6 +97,35 @@ function updateUIState() {
         radar.classList.add('idle');
         radarLabel.textContent = 'SYSTEM IDLE... WAITING';
         radarLabel.style.color = 'var(--muted)';
+    }
+}
+
+/* API Config Controls */
+async function openSettings() {
+    const res = await fetch(`${API_BASE}/settings`);
+    const keys = await res.json();
+    document.getElementById('key-numverify').value = keys.numverify || '';
+    document.getElementById('key-abstract').value = keys.abstract || '';
+    document.getElementById('settings-modal').style.display = 'block';
+}
+
+function closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+async function saveSettings(e) {
+    e.preventDefault();
+    const payload = {
+        numverify: document.getElementById('key-numverify').value,
+        abstract: document.getElementById('key-abstract').value
+    };
+    const res = await fetch(`${API_BASE}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+        closeSettings();
     }
 }
 

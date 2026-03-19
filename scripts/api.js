@@ -4,6 +4,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 const { getStats, lookupNumber, getAllNumbers } = require('./db/queries');
 const { spawn } = require('child_process');
 
@@ -121,6 +122,45 @@ app.get('/api/status', (req, res) => {
 
 app.get('/api/logs', (req, res) => {
   res.json({ logs: liveLogs });
+});
+
+// SETTINGS (API Keys management)
+app.get('/api/settings', (req, res) => {
+  const envPath = path.join(__dirname, '..', '.env');
+  let keys = { numverify: '', abstract: '' };
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf8');
+    const NVMatch = content.match(/NUMVERIFY_API_KEY=(.*)/);
+    const ABSMatch = content.match(/ABSTRACT_API_KEY=(.*)/);
+    if(NVMatch) keys.numverify = NVMatch[1].trim();
+    if(ABSMatch) keys.abstract = ABSMatch[1].trim();
+  }
+  res.json(keys);
+});
+
+app.post('/api/settings', (req, res) => {
+  const { numverify, abstract } = req.body;
+  const envPath = path.join(__dirname, '..', '.env');
+  let content = '';
+  if (fs.existsSync(envPath)) {
+    content = fs.readFileSync(envPath, 'utf8');
+  }
+  
+  const updateKey = (key, value) => {
+    const regex = new RegExp(`^${key}=.*`, 'm');
+    if (regex.test(content)) {
+      content = content.replace(regex, `${key}=${value}`);
+    } else {
+      content += `\n${key}=${value}`;
+    }
+  };
+
+  updateKey('NUMVERIFY_API_KEY', numverify || '');
+  updateKey('ABSTRACT_API_KEY', abstract || '');
+  
+  fs.writeFileSync(envPath, content.trim() + '\n');
+  liveLogs.push('[SYSTEM] OSINT SECRETS SETTING OVERRIDE ACCEPTED');
+  res.json({ success: true });
 });
 
 app.listen(PORT, () => {
