@@ -66,7 +66,7 @@ Use this skill when the user:
   1. **Scan and add new spam numbers** (`scrape`)
   2. **Show a high-level spam database report** (`stats`)
   3. **Check the live status of a running task** (`status`)
-  4. **Export the database to CSV** (`export`) — *Automatically downloads to your PC / Downloads folder*
+  4. **Export the database to CSV** (`export`) — *If on Telegram/mobile, I will attach the file. If on PC/Dashboard, I will download it directly to your Downloads folder.*
   5. **Look up a specific number** (`lookup`)
   6. **Schedule daily or weekly automatic updates** (`schedule`)
   7. **Autonomous OSINT Hunter** (`hunt`) - Finds numbers from Reddit/forums

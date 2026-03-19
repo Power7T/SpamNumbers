@@ -110,7 +110,9 @@ async function triggerExport() {
         const res = await fetch(`${API_BASE}/export`, { method: 'POST' });
         const data = await res.json();
         if(data.success) {
-            alert(`SUCCESS: Database exported to PC! \n\nLocation: ${data.path}`);
+            alert(`SUCCESS: Database exported! \n\nStarting download to your PC...`);
+            // Trigger browser download
+            window.location.href = `${API_BASE}/download-export`;
         }
     } catch(e) {
         alert('Export failed. Check terminal logs.');
