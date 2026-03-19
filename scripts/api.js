@@ -5,6 +5,10 @@ const morgan = require('morgan');
 const Database = require('better-sqlite3');
 const path = require('path');
 const { getStats, lookupNumber, getAllNumbers } = require('./db/queries');
+const { spawn } = require('child_process');
+
+let scraperProcess = null;
+let liveLogs = ["[SYSTEM] OSINT API Server Initialized."];
 
 const app = express();
 const PORT = process.env.PORT || 5555;
@@ -63,6 +67,60 @@ app.get('/api/top', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ENGINE CONTROLS
+app.post('/api/start', (req, res) => {
+  if (scraperProcess) {
+    return res.json({ status: 'already_running' });
+  }
+  
+  liveLogs.push("[OPSEC] Spawning Headless Chromium Clusters...");
+  liveLogs.push("[SYS] Starting Orchestrator Pipeline...");
+  
+  scraperProcess = spawn('node', [path.join(__dirname, 'index.js'), 'scrape']);
+  
+  scraperProcess.stdout.on('data', (data) => {
+    const lines = data.toString().split('\n').filter(l => l.trim().length > 0);
+    lines.forEach(l => {
+      liveLogs.push(l);
+      if(liveLogs.length > 100) liveLogs.shift(); // Keep last 100
+    });
+  });
+
+  scraperProcess.stderr.on('data', (data) => {
+    const lines = data.toString().split('\n').filter(l => l.trim().length > 0);
+    lines.forEach(l => {
+      liveLogs.push('[WARN] ' + l);
+      if(liveLogs.length > 100) liveLogs.shift();
+    });
+  });
+
+  scraperProcess.on('close', (code) => {
+    liveLogs.push(`[SYS] Pipeline Terminated (Code: ${code})`);
+    scraperProcess = null;
+  });
+
+  res.json({ status: 'started' });
+});
+
+app.post('/api/stop', (req, res) => {
+  if (scraperProcess) {
+    scraperProcess.kill();
+    scraperProcess = null;
+    liveLogs.push("[SYS] ABORT SIGNAL SENT. Halting clusters...");
+    res.json({ status: 'stopped' });
+  } else {
+    res.json({ status: 'not_running' });
+  }
+});
+
+app.get('/api/status', (req, res) => {
+  res.json({ isRunning: !!scraperProcess });
+});
+
+app.get('/api/logs', (req, res) => {
+  res.json({ logs: liveLogs });
 });
 
 app.listen(PORT, () => {

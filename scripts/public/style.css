@@ -198,6 +198,20 @@ aside h3 {
 
 .radar-label { margin-top: 15px; font-size: 0.75rem; color: var(--cyan); letter-spacing: 2px; }
 
+/* ENGINE CONTROLS */
+.engine-controls { display: flex; gap: 10px; margin-top: 15px; width: 100%; justify-content: center;}
+.btn-cyber { padding: 6px 15px; border: 1px solid; border-radius: 4px; font-family: 'Share Tech Mono'; font-weight: bold; font-size: 0.75rem; cursor: pointer; transition: 0.2s;}
+.btn-engage { background: rgba(0,230,118,0.1); color: var(--green); border-color: var(--green); }
+.btn-engage:hover { background: var(--green); color: #000; box-shadow: 0 0 10px rgba(0,230,118,0.5); }
+.btn-halt { background: rgba(255,51,102,0.1); color: var(--red); border-color: var(--red); }
+.btn-halt:hover:not(:disabled) { background: var(--red); color: #000; box-shadow: var(--glow-red); }
+.cursor-disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* RADAR STATES */
+.radar.idle .sweep { animation: none; display: none; }
+.radar.idle { border-color: var(--muted); box-shadow: none; background: radial-gradient(circle, rgba(107,114,128,0.1) 0%, transparent 70%); }
+.radar.idle::before, .radar.idle::after { border-color: rgba(107,114,128,0.3); }
+
 /* DATA TABLE */
 .center-panel { display: flex; flex-direction: column; height: 100%; }
 .flex-grow { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0; }

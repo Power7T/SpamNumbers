@@ -27,14 +27,18 @@
     <main class="dashboard-grid">
         
         <!-- LEFT COLUMN: RADAR & STATS -->
+        <!-- LEFT COLUMN: RADAR & STATS -->
         <aside class="left-panel">
             <div class="panel-card glass-panel radar-container">
-                <div class="radar">
+                <div class="radar" id="radar-visual">
                     <div class="sweep"></div>
-                    <!-- Dots will be populated by JS to simulate threats -->
                     <div id="radar-blips"></div>
                 </div>
-                <div class="radar-label">GLOBAL TRAFFIC SENSOR</div>
+                <div class="radar-label" id="radar-status-text">SYSTEM IDLE</div>
+                <div class="engine-controls">
+                    <button id="btn-start" class="btn-cyber btn-engage">ENGAGE SWEEP</button>
+                    <button id="btn-stop" class="btn-cyber btn-halt cursor-disabled" disabled>HALT</button>
+                </div>
             </div>
 
             <div class="panel-card glass-panel stats-list">

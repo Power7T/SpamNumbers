@@ -3,20 +3,18 @@
 const API_BASE = '/api';
 let currentFilter = 'all';
 let rawData = [];
+let isEngineRunning = false;
 
-/**
- * Boot Sequence
- */
+/* Boot Sequence */
 async function init() {
     updateClock();
     setInterval(updateClock, 1000);
     
+    await checkEngineStatus();
     await updateStats();
     await fetchLatest();
-    startTerminalSim();
-    spawnRadarBlips();
-
-    // Filters
+    
+    // UI binding
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -26,73 +24,138 @@ async function init() {
         });
     });
 
-    // Close Target Profile
     document.getElementById('close-profile').addEventListener('click', () => {
         document.getElementById('target-profile').style.display = 'none';
         document.querySelectorAll('#latest-table tr').forEach(tr => tr.classList.remove('selected'));
     });
 
-    // Sync loops
-    setInterval(updateStats, 30000);
-    setInterval(fetchLatest, 30000);
+    document.getElementById('btn-start').addEventListener('click', engageEngine);
+    document.getElementById('btn-stop').addEventListener('click', haltEngine);
+
+    // Sync loops (fast syncing for "Live" feel)
+    setInterval(updateStats, 5000); // 5 sec live sync
+    setInterval(fetchLatest, 5000); // 5 sec live sync
+    setInterval(syncTerminalLogs, 2000); // 2 sec log sync
+    setInterval(checkEngineStatus, 10000); // 10 sec state check
+    
+    spawnRadarBlips();
 }
 
-/**
- * Digital Clock
- */
 function updateClock() {
     const now = new Date();
     document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false }) + ' UTC';
 }
 
-/**
- * Fetch Main Telemetry
- */
+/* Engine Controls */
+async function checkEngineStatus() {
+    try {
+        const res = await fetch(`${API_BASE}/status`);
+        const data = await res.json();
+        isEngineRunning = data.isRunning;
+        updateUIState();
+    } catch(e) {}
+}
+
+async function engageEngine() {
+    if(isEngineRunning) return;
+    try {
+        await fetch(`${API_BASE}/start`, { method: 'POST' });
+        isEngineRunning = true;
+        updateUIState();
+    } catch(e) {}
+}
+
+async function haltEngine() {
+    if(!isEngineRunning) return;
+    try {
+        await fetch(`${API_BASE}/stop`, { method: 'POST' });
+        isEngineRunning = false;
+        updateUIState();
+    } catch(e) {}
+}
+
+function updateUIState() {
+    const startBtn = document.getElementById('btn-start');
+    const stopBtn = document.getElementById('btn-stop');
+    const radar = document.getElementById('radar-visual');
+    const radarLabel = document.getElementById('radar-status-text');
+
+    if (isEngineRunning) {
+        startBtn.disabled = true; startBtn.classList.add('cursor-disabled');
+        stopBtn.disabled = false; stopBtn.classList.remove('cursor-disabled');
+        radar.classList.remove('idle');
+        radarLabel.textContent = 'GLOBAL TRAFFIC SENSOR: ACTIVE';
+        radarLabel.style.color = 'var(--green)';
+    } else {
+        startBtn.disabled = false; startBtn.classList.remove('cursor-disabled');
+        stopBtn.disabled = true; stopBtn.classList.add('cursor-disabled');
+        radar.classList.add('idle');
+        radarLabel.textContent = 'SYSTEM IDLE... WAITING';
+        radarLabel.style.color = 'var(--muted)';
+    }
+}
+
+/* Data Syncers */
 async function updateStats() {
     try {
         const response = await fetch(`${API_BASE}/stats`);
         const stats = await response.json();
-
-        // Animate counter
-        animateValue('total-count', parseInt(document.getElementById('total-count').innerText) || 0, stats.total, 1000);
-        document.getElementById('country-count').textContent = stats.byCountry.length;
-        document.getElementById('source-count').textContent = stats.bySource.length;
         
-        const lastRun = stats.lastRun?.finished_at ? new Date(stats.lastRun.finished_at) : null;
-        document.getElementById('last-run').textContent = lastRun ? lastRun.toLocaleTimeString('en-US', {hour12:false}) : 'SCANNING...';
+        const tcElement = document.getElementById('total-count');
+        const currTotal = parseInt(tcElement.innerText.replace(/,/g, '')) || 0;
+        
+        // Only re-render if stats changed (stops flickering)
+        if (currTotal !== stats.total) {
+            animateValue('total-count', currTotal, stats.total, 1000);
+            document.getElementById('country-count').textContent = stats.byCountry.length;
+            document.getElementById('source-count').textContent = stats.bySource.length;
+            renderCssBarChart(stats.bySource.slice(0, 6));
+        }
 
-        renderCssBarChart(stats.bySource.slice(0, 6));
+        const lastRun = stats.lastRun?.finished_at ? new Date(stats.lastRun.finished_at) : null;
+        document.getElementById('last-run').textContent = lastRun ? lastRun.toLocaleTimeString('en-US', {hour12:false}) : (isEngineRunning ? 'SCANNING...' : 'STANDBY');
+
     } catch (e) { console.error('Telemetry err:', e); }
 }
 
-function animateValue(id, start, end, duration) {
-    if (start === end) return;
-    let range = end - start;
-    let current = start;
-    let increment = end > start ? Math.ceil(range / 60) : Math.floor(range / 60);
-    let stepTime = Math.abs(Math.floor(duration / (range / increment)));
-    let obj = document.getElementById(id);
-    let timer = setInterval(function() {
-        current += increment;
-        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-        }
-        obj.innerHTML = current.toLocaleString();
-    }, stepTime);
-}
-
-/**
- * Fetch Live Threat Stream
- */
 async function fetchLatest() {
     try {
         const response = await fetch(`${API_BASE}/latest`);
-        rawData = await response.json();
-        renderTable();
-    } catch (err) { console.error('Stream err:', err); }
+        const newRawData = await response.json();
+        
+        // Simple check to prevent full DOM repaint if data hasn't changed
+        if (JSON.stringify(newRawData) !== JSON.stringify(rawData)) {
+            rawData = newRawData;
+            renderTable();
+        }
+    } catch (err) { }
 }
 
+async function syncTerminalLogs() {
+    try {
+        const res = await fetch(`${API_BASE}/logs`);
+        const { logs } = await res.json();
+        
+        const logBox = document.getElementById('live-log');
+        logBox.innerHTML = '';
+        
+        // Render logs backward (newest at top)
+        const reversed = [...logs].reverse().slice(0, 50);
+        reversed.forEach(logLine => {
+            const wrap = document.createElement('p');
+            // Basic color coding logic for real logs
+            if(logLine.includes('[WARN]') || logLine.includes('FAIL')) wrap.className = 'log-entry threat';
+            else if(logLine.includes('Captured') || logLine.includes('Found')) wrap.className = 'log-entry discovery';
+            else if(logLine.includes('[SYS]')) wrap.className = 'log-entry system';
+            else wrap.className = 'log-entry';
+            
+            wrap.textContent = logLine;
+            logBox.appendChild(wrap);
+        });
+    } catch(e) {}
+}
+
+/* View Renderers */
 function renderTable() {
     const table = document.getElementById('latest-table');
     let filtered = rawData;
@@ -116,16 +179,11 @@ function renderTable() {
     }).join('');
 }
 
-/**
- * Dossier Inspection (Interactive Click)
- */
 function inspectTarget(phone) {
-    // UI selection
     document.querySelectorAll('#latest-table tr').forEach(tr => tr.classList.remove('selected'));
     const row = document.querySelector(`tr[data-phone="${phone}"]`);
     if(row) row.classList.add('selected');
 
-    // Data binding
     const item = rawData.find(i => i.phone_number === phone);
     if (!item) return;
 
@@ -141,14 +199,8 @@ function inspectTarget(phone) {
         [SEEN]: ${new Date(item.date_first_seen).toLocaleString()} <br>
         [INTEL]: ${item.user_notes || 'No extended intelligence available.'}
     `;
-    
-    // Add terminal log entry for activity
-    addLog(`[USER] Inspecting Dossier for Node: ${item.phone_number}`, 'system');
 }
 
-/**
- * Native CSS Bar Chart Builder (Replaces heavy JS libs)
- */
 function renderCssBarChart(sourceData) {
     const container = document.getElementById('bar-chart');
     if (!sourceData.length) return;
@@ -170,27 +222,25 @@ function renderCssBarChart(sourceData) {
     }).join('');
 }
 
-/**
- * Radar Blip Animator
- */
 function spawnRadarBlips() {
     const radar = document.getElementById('radar-blips');
     setInterval(() => {
+        if(!isEngineRunning) {
+            radar.innerHTML = ''; return;
+        }
+
         if(radar.children.length > 5) radar.removeChild(radar.firstChild);
         
         const blip = document.createElement('div');
         blip.className = 'blip';
-        
-        // Random coords within the circle
         const angle = Math.random() * Math.PI * 2;
-        const radius = Math.random() * 60; // 150/2 = 75
+        const radius = Math.random() * 60; 
         const x = Math.cos(angle) * radius + 75;
         const y = Math.sin(angle) * radius + 75;
         
-        blip.style.left = `${x}px`;
-        blip.style.top = `${y}px`;
+        blip.style.left = \`\${x}px\`;
+        blip.style.top = \`\${y}px\`;
         
-        // Color randomization to simulate varing threats
         const colors = ['var(--red)', 'var(--cyan)', 'var(--magenta)'];
         blip.style.background = colors[Math.floor(Math.random() * colors.length)];
         
@@ -198,33 +248,21 @@ function spawnRadarBlips() {
     }, 1500);
 }
 
-/**
- * Terminal Simulator
- */
-function startTerminalSim() {
-    const scenarios = [
-        { type: 'discovery', msg: 'Cloud-Vacuum (Gists): Intercepted 4 blocklists' },
-        { type: 'system', msg: 'System integrity 100%. Handshake complete.' },
-        { type: 'threat', msg: 'WARNING: Sudden surge in Spain (Tellows ES)' },
-        { type: 'discovery', msg: 'Nitter Socket: Stream synced. Extracted 8 sigs' },
-        { type: 'threat', msg: 'Deep-Stealth Archive: Bypassing Check...' },
-        { type: 'discovery', msg: 'BBB Scraper: 53 consumer entries digested' }
-    ];
-
-    setInterval(() => {
-        const random = scenarios[Math.floor(Math.random() * scenarios.length)];
-        addLog(random.msg, random.type);
-    }, 6000);
+function animateValue(id, start, end, duration) {
+    if (start === end) return;
+    let range = end - start;
+    let current = start;
+    let increment = end > start ? Math.ceil(range / 60) : Math.floor(range / 60);
+    let stepTime = Math.abs(Math.floor(duration / (range / increment)));
+    let obj = document.getElementById(id);
+    let timer = setInterval(function() {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+        }
+        obj.innerHTML = current.toLocaleString();
+    }, stepTime);
 }
 
-function addLog(msg, type) {
-    const logBox = document.getElementById('live-log');
-    const el = document.createElement('p');
-    el.className = `log-entry ${type}`;
-    el.innerHTML = `[${new Date().toLocaleTimeString('en-US',{hour12:false})}] ${msg}`;
-    logBox.prepend(el);
-    if (logBox.children.length > 50) logBox.removeChild(logBox.lastChild);
-}
-
-// Start sequence
 init();
