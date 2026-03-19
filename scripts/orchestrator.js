@@ -15,6 +15,7 @@ const { scrapeBBB } = require('./scrapers/bbbScraper');
 const { scrapeHFDataset } = require('./scrapers/hfHunter');
 const { scrapeSocialOSINT } = require('./scrapers/twitterScraper');
 const { scrapeGistFeed } = require('./scrapers/gistHunter');
+const { runHistoricalCrawl } = require('./scrapers/archiveCrawler');
 const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
