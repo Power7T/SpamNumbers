@@ -53,7 +53,15 @@ node scripts/index.js bulk numbers.txt
 node scripts/index.js scrape
 ```
 
-Fetches fresh data from all 10 sources in parallel groups. Each source is isolated — one failure won't stop the rest. Safe to run anytime.
+Fetches fresh data from all **17+ sources** (Tellows, SyncMe, Nomorobo, FTC, GitHub lists, etc) in parallel groups. Each source is isolated — one failure won't stop the rest. Safe to run anytime.
+
+## Live Progress Tracking
+
+```bash
+node scripts/index.js status
+```
+
+Shows the live progress log of the current (or most recent) scrape run. Useful when running a full sweep in the background.
 
 ## Export to CSV
 
@@ -62,7 +70,9 @@ node scripts/index.js export
 node scripts/index.js export my_spam_list.csv
 ```
 
-Creates a CSV in `scripts/exports/` with columns: `phone_number, spam_score, call_type, country, report_count, sources, user_notes, date_first_seen, date_last_updated`.
+Creates a CSV in `scripts/exports/` and automatically attempts to copy it to your PC's **Downloads** folder (Mac/Windows) for immediate access.
+
+Columns: `phone_number, spam_score, call_type, country, report_count, sources, user_notes, date_first_seen, date_last_updated`.
 
 ## Database Statistics
 
@@ -91,13 +101,46 @@ node scripts/index.js decay
 
 Reduces scores of numbers not updated in 90+ days. Runs automatically during scheduled scans.
 
-## Weekly Auto-Scheduler
+## Autonomous OSINT Hunter
 
 ```bash
-node scripts/index.js schedule
+node scripts/index.js hunt
 ```
 
-Runs a full scan immediately, then repeats every Sunday at 2 AM. Keep this process running (use `nohup`, `screen`, or a process manager).
+Starts the **Reasoning Engine** to hunt for new, live spam threats across the web (Reddit, forums, pastebins). It identifies patterns and adds them to the permanent threat grid.
+
+## Recover Historical Records
+
+```bash
+node scripts/index.js deep-crawl
+```
+
+Scans regional archives and historical datasets to recover records that may have been aged out of community indices.
+
+## Manually Add confirmed scam number
+
+```bash
+node scripts/index.js add <phone_number> [type] [notes]
+```
+
+Manually injects a confirmed threat into the local database with a maxed-out spam score.
+
+## Configure API Keys
+
+```bash
+node scripts/index.js config <KEY_NAME> <VALUE>
+```
+
+Sets API keys (e.g., `NUMVERIFY_API_KEY`, `ABSTRACT_API_KEY`) for carrier-level validation.
+
+## Weekly/Daily Auto-Scheduler
+
+```bash
+node scripts/index.js schedule daily
+node scripts/index.js schedule weekly
+```
+
+Runs a full scan immediately, then repeats automatically. Keep this process running in the background.
 
 ## Chat Examples
 

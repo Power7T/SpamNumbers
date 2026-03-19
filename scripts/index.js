@@ -369,7 +369,31 @@ async function main() {
       case 'export': {
         const customPath = args[0] || null;
         const outPath = exportToCsv(db, customPath);
-        console.log(`CSV exported to: ${outPath}`);
+        console.log(`\n📦 CSV exported to (VPS/Local): ${outPath}`);
+
+        // AUTO-DOWNLOAD TO PC LOGIC
+        try {
+          const os = require('os');
+          const homeDir = os.homedir();
+          const fileName = path.basename(outPath);
+          const platform = os.platform(); // 'darwin' for Mac, 'win32' for Windows
+          
+          let downloadPath = '';
+          if (platform === 'darwin') {
+             downloadPath = path.join(homeDir, 'Downloads', fileName);
+          } else if (platform === 'win32') {
+             downloadPath = path.join(homeDir, 'Downloads', fileName);
+          }
+
+          if (downloadPath && fs.existsSync(path.dirname(downloadPath))) {
+             fs.copyFileSync(outPath, downloadPath);
+             console.log(`🚀 AUTO-DOWNLOAD: Successfully saved to your PC at: ${downloadPath}\n`);
+          } else {
+             console.log(`ℹ️  Note: Local Downloads folder not detected. File is available at: ${outPath}\n`);
+          }
+        } catch (e) {
+          console.warn(`⚠️  Auto-download failed: ${e.message}`);
+        }
         break;
       }
 

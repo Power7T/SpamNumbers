@@ -266,8 +266,22 @@ tr.selected { background: rgba(0, 243, 255, 0.1); border-left: 3px solid var(--c
 .bar-fill { height: 100%; background: var(--cyan); }
 .bar-value { flex: 0 0 30px; text-align: right; color: #fff; }
 
+/* NEW: SEARCH & OPS */
+.lookup-box { display: flex; gap: 5px; }
+.cyber-input { background: rgba(0,0,0,0.5); border: 1px dashed var(--muted); padding: 8px; color: #fff; font-family: 'Share Tech Mono'; width: 220px; outline: none; transition: 0.3s; }
+.cyber-input:focus { border-color: var(--cyan); border-style: solid; box-shadow: var(--glow); }
+
+.btn-cyan { background: var(--cyan); color: #000; border: none; padding: 0 15px; font-family: 'Share Tech Mono'; font-weight: bold; cursor: pointer; transition: 0.2s; }
+.btn-cyan:hover { box-shadow: var(--glow); }
+
+.ops-box { flex: 0.5; }
+.ops-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+.btn-op { background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-main); padding: 10px 5px; font-family: 'Share Tech Mono'; cursor: pointer; border-radius: 4px; transition: 0.3s; font-size: 0.7rem; }
+.btn-op:hover { background: rgba(0, 243, 255, 0.1); border-color: var(--cyan); color: var(--cyan); box-shadow: var(--glow); transform: translateY(-2px); }
+
 /* SCROLLBARS */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,243,255,0.3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+

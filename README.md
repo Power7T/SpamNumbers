@@ -93,12 +93,19 @@ Because SpamNumbers is an **OpenClaw Skill**, simply chat with your OpenClaw age
 
 Use the trigger word `spam` to pull up the interactive console:
 > *"I am the Spam Numbers agent. Here is what I can do for you:*
-> 1. *Scan and add new spam numbers*
-> 2. *Show a high-level spam database report*
-> 3. *Check the live status of a running task*
-> 4. *Export the database to CSV*
-> 5. *Look up a specific number*
-> 6. *Schedule daily or weekly automatic updates"*
+  1. **Scan and add new spam numbers** (`scrape`)
+  2. **Show a high-level spam database report** (`stats`)
+  3. **Check the live status of a running task** (`status`)
+  4. **Export the database to CSV** (`export`) — *Automatically downloads to your PC / Downloads folder*
+  5. **Look up a specific number** (`lookup`)
+  6. **Schedule daily or weekly automatic updates** (`schedule`)
+  7. **Autonomous OSINT Hunter** (`hunt`) - Finds numbers from Reddit/forums
+  8. **Bulk lookup from a text file** (`bulk`)
+  9. **Whitelist or unwhitelist a number** (`whitelist`/`unwhitelist`)
+  10. **Manually add a confirmed scam number** (`add`)
+  11. **Recover historical records** (`deep-crawl`)
+  12. **Clean up stale/old data** (`decay`)
+  13. **Configure API keys** (`config`)
 
 Or request complex analytical workflows naturally:
 > 🗣️ *"Give me a high level threat report for today."*

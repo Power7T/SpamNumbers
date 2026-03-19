@@ -80,11 +80,17 @@
         <section class="center-panel">
             <div class="panel-card glass-panel flex-grow">
                 <div class="card-header border-bottom">
-                    <h2>REAL-TIME THREAT INGESTION</h2>
-                    <div class="filter-group">
-                        <button class="filter-btn active" data-filter="all">GLOBAL</button>
-                        <button class="filter-btn" data-filter="US">DOMESTIC (US)</button>
-                        <button class="filter-btn" data-filter="IN">ASIA-PAC</button>
+                    <div class="header-left">
+                        <h2>REAL-TIME THREAT INGESTION</h2>
+                        <div class="filter-group" style="margin-top:10px;">
+                            <button class="filter-btn active" data-filter="all">GLOBAL</button>
+                            <button class="filter-btn" data-filter="US">DOMESTIC (US)</button>
+                            <button class="filter-btn" data-filter="IN">ASIA-PAC</button>
+                        </div>
+                    </div>
+                    <div class="header-right lookup-box">
+                        <input type="text" id="search-input" placeholder="[SCAN TARGET NUMBER...]" class="cyber-input">
+                        <button id="btn-search" class="btn-cyan">SCAN</button>
                     </div>
                 </div>
                 
@@ -120,8 +126,18 @@
             <div class="panel-card glass-panel chart-box">
                 <h3>VECTOR DISTRIBUTION</h3>
                 <div class="chart-wrapper">
-                    <!-- Custom Bar Chart driven by JS to avoid external libs if not needed, or we use a simple DOM chart -->
                     <div id="bar-chart" class="css-bar-chart"></div>
+                </div>
+            </div>
+
+            <div class="panel-card glass-panel ops-box">
+                <h3>GRID OPERATIONS</h3>
+                <div class="ops-grid">
+                    <button id="btn-hunt" class="btn-op" title="Autonomous Hunt">🏹 HUNT</button>
+                    <button id="btn-deep-crawl" class="btn-op" title="Historical Deep Crawl">📦 DEEP</button>
+                    <button id="btn-decay" class="btn-op" title="Score Decay Cleanup">🧹 CLEAN</button>
+                    <button id="btn-export" class="btn-op" title="Export to PC Downloads">💾 EXPORT</button>
+                    <button id="btn-manual-add" class="btn-op" title="Manual Threat Injection">➕ INJECT</button>
                 </div>
             </div>
 
@@ -132,7 +148,7 @@
     <!-- SETTINGS MODAL -->
     <div id="settings-modal" class="glass-panel target-profile" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%,0); z-index:9999; width:450px; background:rgba(0,0,0,0.85);">
         <h3>OSINT API SECRETS <span class="badge" style="background:var(--cyan); color:#000;">ENCRYPTED</span></h3>
-        <p style="font-size:0.75rem; color:var(--muted); margin-bottom:15px;">Configure your external threat-intel keys here. These are saved directly to your local `.env` and are never pushed to the cloud.</p>
+        <p style="font-size:0.75rem; color:var(--muted); margin-bottom:15px;">Configure your external threat-intel keys here. These are saved directly to your local `.env`. </p>
         
         <form id="settings-form">
             <div style="margin-bottom:10px;">
@@ -148,6 +164,39 @@
             <div class="engine-controls">
                <button type="submit" class="btn-cyber btn-engage" id="btn-save-keys">DEPLOY KEYS</button>
                <button type="button" class="btn-cyber btn-halt" id="btn-close-settings">CANCEL</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MANUAL THREAT INJECT MODAL -->
+    <div id="add-modal" class="glass-panel target-profile" style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%,0); z-index:9999; width:450px; background:rgba(0,0,0,0.9); border-left-color:var(--magenta);">
+        <h3>THREAT INJECTION <span class="badge" style="background:var(--magenta); color:#fff;">MANUAL ENTRY</span></h3>
+        <p style="font-size:0.75rem; color:var(--muted); margin-bottom:15px;">Manually define a known threat signature. Injects a CRITICAL (10.0) score into the permanent grid.</p>
+        
+        <form id="add-form">
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:0.7rem; color:var(--magenta); margin-bottom:5px;">[PHONE_NUMBER]</label>
+                <input type="text" id="add-phone" placeholder="+18005551234" required style="width:100%; border:1px dashed var(--muted); background:transparent; padding:8px; color:#fff; font-family:'Share Tech Mono';">
+            </div>
+            
+            <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:0.7rem; color:var(--magenta); margin-bottom:5px;">[CLASSIFICATION]</label>
+                <select id="add-type" style="width:100%; border:1px dashed var(--muted); background:var(--bg); padding:8px; color:#fff; font-family:'Share Tech Mono';">
+                    <option value="scam">SCAM / FRAUD</option>
+                    <option value="robocall">ROBOCALL / VOIP</option>
+                    <option value="telemarketer">TELEMARKETER</option>
+                    <option value="sms_spam">SMS SPAM TRAP</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-size:0.7rem; color:var(--magenta); margin-bottom:5px;">[INTELLIGENCE_NOTES]</label>
+                <textarea id="add-notes" placeholder="Reasoning for injection..." style="width:100%; height:80px; border:1px dashed var(--muted); background:transparent; padding:8px; color:#fff; font-family:'Share Tech Mono'; resize:none;"></textarea>
+            </div>
+            
+            <div class="engine-controls">
+               <button type="submit" class="btn-cyber btn-engage" id="btn-submit-add" style="border-color:var(--magenta); color:var(--magenta);">INJECT SIGNATURE</button>
+               <button type="button" class="btn-cyber btn-halt" id="btn-close-add">ABORT</button>
             </div>
         </form>
     </div>

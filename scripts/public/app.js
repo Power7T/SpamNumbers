@@ -32,10 +32,24 @@ async function init() {
     document.getElementById('btn-start').addEventListener('click', engageEngine);
     document.getElementById('btn-stop').addEventListener('click', haltEngine);
 
-    // Settings Modal
     document.getElementById('btn-settings').addEventListener('click', openSettings);
     document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
     document.getElementById('btn-save-keys').addEventListener('click', saveSettings);
+
+    // Grid Operations
+    document.getElementById('btn-hunt').addEventListener('click', () => runOperation('hunt'));
+    document.getElementById('btn-deep-crawl').addEventListener('click', () => runOperation('deep-crawl'));
+    document.getElementById('btn-decay').addEventListener('click', () => runOperation('decay'));
+    document.getElementById('btn-export').addEventListener('click', triggerExport);
+    document.getElementById('btn-manual-add').addEventListener('click', openAddModal);
+    document.getElementById('btn-close-add').addEventListener('click', closeAddModal);
+    document.getElementById('add-form').addEventListener('submit', injectThreat);
+
+    // Global Search
+    document.getElementById('btn-search').addEventListener('click', targetLookup);
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') targetLookup();
+    });
 
     // Sync loops (fast syncing for "Live" feel)
     setInterval(updateStats, 5000); // 5 sec live sync
@@ -63,10 +77,19 @@ async function checkEngineStatus() {
 
 async function engageEngine() {
     if(isEngineRunning) return;
+    runOperation('scrape');
+}
+
+async function runOperation(name) {
+    if(isEngineRunning) return;
     try {
-        await fetch(`${API_BASE}/start`, { method: 'POST' });
+        await fetch(`${API_BASE}/start`, { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: name })
+        });
         isEngineRunning = true;
-        updateUIState();
+        updateUIState(name);
     } catch(e) {}
 }
 
@@ -79,7 +102,75 @@ async function haltEngine() {
     } catch(e) {}
 }
 
-function updateUIState() {
+async function triggerExport() {
+    const btn = document.getElementById('btn-export');
+    btn.textContent = 'WAIT...';
+    btn.disabled = true;
+    try {
+        const res = await fetch(`${API_BASE}/export`, { method: 'POST' });
+        const data = await res.json();
+        if(data.success) {
+            alert(`SUCCESS: Database exported to PC! \n\nLocation: ${data.path}`);
+        }
+    } catch(e) {
+        alert('Export failed. Check terminal logs.');
+    }
+    btn.textContent = '💾 EXPORT';
+    btn.disabled = false;
+}
+
+function openAddModal() {
+    document.getElementById('add-modal').style.display = 'block';
+}
+
+function closeAddModal() {
+    document.getElementById('add-modal').style.display = 'none';
+}
+
+async function injectThreat(e) {
+    e.preventDefault();
+    const payload = {
+        phone: document.getElementById('add-phone').value,
+        type: document.getElementById('add-type').value,
+        notes: document.getElementById('add-notes').value
+    };
+    try {
+        const res = await fetch(`${API_BASE}/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if(res.ok) {
+            closeAddModal();
+            fetchLatest();
+            updateStats();
+        }
+    } catch(e) {}
+}
+
+async function targetLookup() {
+    const input = document.getElementById('search-input');
+    const phone = input.value.trim();
+    if(!phone) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/lookup/${encodeURIComponent(phone)}`);
+        const result = await res.json();
+        if(result && result.phone_number) {
+            // Find in rawData if possible to reuse inspectTarget
+            const existing = rawData.find(i => i.phone_number === result.phone_number);
+            if(!existing) {
+                rawData.unshift(result); // Add to local cache for display
+                renderTable();
+            }
+            inspectTarget(result.phone_number);
+        } else {
+            alert(`TARGET NOT FOUND: ${phone} \n\nNumber not detected in local database.`);
+        }
+    } catch(e) {}
+}
+
+function updateUIState(opName = 'scrape') {
     const startBtn = document.getElementById('btn-start');
     const stopBtn = document.getElementById('btn-stop');
     const radar = document.getElementById('radar-visual');
@@ -89,8 +180,8 @@ function updateUIState() {
         startBtn.disabled = true; startBtn.classList.add('cursor-disabled');
         stopBtn.disabled = false; stopBtn.classList.remove('cursor-disabled');
         radar.classList.remove('idle');
-        radarLabel.textContent = 'GLOBAL TRAFFIC SENSOR: ACTIVE';
-        radarLabel.style.color = 'var(--green)';
+        radarLabel.textContent = `OPERATION ${opName.toUpperCase()}: ACTIVE`;
+        radarLabel.style.color = opName === 'scrape' ? 'var(--green)' : 'var(--magenta)';
     } else {
         startBtn.disabled = false; startBtn.classList.remove('cursor-disabled');
         stopBtn.disabled = true; stopBtn.classList.add('cursor-disabled');

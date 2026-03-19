@@ -10,6 +10,7 @@ const { spawn } = require('child_process');
 
 let scraperProcess = null;
 let liveLogs = ["[SYSTEM] OSINT API Server Initialized."];
+let activeOperation = null; // 'scrape', 'hunt', 'decay', 'deep-crawl'
 
 const app = express();
 const PORT = process.env.PORT || 5555;
@@ -72,20 +73,29 @@ app.get('/api/top', (req, res) => {
 
 // ENGINE CONTROLS
 app.post('/api/start', (req, res) => {
+  const { command = 'scrape' } = req.body;
   if (scraperProcess) {
-    return res.json({ status: 'already_running' });
+    return res.json({ status: 'already_running', operation: activeOperation });
   }
   
-  liveLogs.push("[OPSEC] Spawning Headless Chromium Clusters...");
-  liveLogs.push("[SYS] Starting Orchestrator Pipeline...");
+  activeOperation = command;
+  const commandMap = {
+    'scrape': { log: '[OPSEC] Spawning Headless Chromium Clusters...', args: ['scrape'] },
+    'hunt': { log: '[🏹] Starting Autonomous OSINT Hunt...', args: ['hunt'] },
+    'decay': { log: '[SYS] Running Stale Data Cleanup...', args: ['decay'] },
+    'deep-crawl': { log: '[📦] Initializing Historical Deep-Crawl...', args: ['deep-crawl'] }
+  };
+
+  const op = commandMap[command] || commandMap['scrape'];
+  liveLogs.push(op.log);
   
-  scraperProcess = spawn('node', [path.join(__dirname, 'index.js'), 'scrape']);
+  scraperProcess = spawn('node', [path.join(__dirname, 'index.js'), ...op.args]);
   
   scraperProcess.stdout.on('data', (data) => {
     const lines = data.toString().split('\n').filter(l => l.trim().length > 0);
     lines.forEach(l => {
       liveLogs.push(l);
-      if(liveLogs.length > 100) liveLogs.shift(); // Keep last 100
+      if(liveLogs.length > 100) liveLogs.shift();
     });
   });
 
@@ -98,17 +108,53 @@ app.post('/api/start', (req, res) => {
   });
 
   scraperProcess.on('close', (code) => {
-    liveLogs.push(`[SYS] Pipeline Terminated (Code: ${code})`);
+    liveLogs.push(`[SYS] Operation ${activeOperation} Terminated (Code: ${code})`);
     scraperProcess = null;
+    activeOperation = null;
   });
 
-  res.json({ status: 'started' });
+  res.json({ status: 'started', operation: command });
+});
+
+app.post('/api/export', (req, res) => {
+  liveLogs.push("[SYS] Triggering Global Intelligence Export...");
+  const proc = spawn('node', [path.join(__dirname, 'index.js'), 'export']);
+  
+  let output = '';
+  proc.stdout.on('data', (data) => output += data.toString());
+  
+  proc.on('close', (code) => {
+    if (code === 0) {
+      const match = output.match(/Successfully saved to your PC at: (.*)/);
+      const pathFound = match ? match[1].trim() : "See terminal logs";
+      liveLogs.push(`[SUCCESS] Database exported to PC: ${pathFound}`);
+      res.json({ success: true, path: pathFound });
+    } else {
+      res.status(500).json({ success: false });
+    }
+  });
+});
+
+app.post('/api/add', (req, res) => {
+  const { phone, type, notes } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone required' });
+
+  const proc = spawn('node', [path.join(__dirname, 'index.js'), 'add', phone, type, notes]);
+  proc.on('close', (code) => {
+    if (code === 0) {
+      liveLogs.push(`[MANUAL] Injected threat signature: ${phone}`);
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ success: false });
+    }
+  });
 });
 
 app.post('/api/stop', (req, res) => {
   if (scraperProcess) {
     scraperProcess.kill();
     scraperProcess = null;
+    activeOperation = null;
     liveLogs.push("[SYS] ABORT SIGNAL SENT. Halting clusters...");
     res.json({ status: 'stopped' });
   } else {
@@ -117,7 +163,7 @@ app.post('/api/stop', (req, res) => {
 });
 
 app.get('/api/status', (req, res) => {
-  res.json({ isRunning: !!scraperProcess });
+  res.json({ isRunning: !!scraperProcess, operation: activeOperation });
 });
 
 app.get('/api/logs', (req, res) => {

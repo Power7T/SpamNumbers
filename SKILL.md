@@ -16,7 +16,7 @@ metadata:
           properties:
             command:
               type: string
-              enum: ["stats", "lookup", "hunt", "scrape", "export", "add"]
+              enum: ["stats", "lookup", "hunt", "scrape", "export", "add", "status", "schedule", "bulk", "whitelist", "unwhitelist", "decay", "deep-crawl", "config"]
             number:
               type: string
               description: "Phone number for lookup or add"
@@ -62,7 +62,20 @@ Use this skill when the user:
 
 **User Query Handling Rules:**
 - DO NOT EXPLAIN OR CHAT UNLESS REQUIRED. Just execute the exact script and output the result.
-- If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a numbered list of all the things you can do (e.g., "I am the Spam Numbers agent. Here is what I can do for you: \n 1. Scan and add new spam numbers \n 2. Show a high-level spam database report \n 3. Check the live status of a running task \n 4. Export the database to CSV \n 5. Look up a specific number \n 6. Schedule daily or weekly automatic updates"). 
+- If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a numbered list of all the things you can do:
+  1. **Scan and add new spam numbers** (`scrape`)
+  2. **Show a high-level spam database report** (`stats`)
+  3. **Check the live status of a running task** (`status`)
+  4. **Export the database to CSV** (`export`) — *Automatically downloads to your PC / Downloads folder*
+  5. **Look up a specific number** (`lookup`)
+  6. **Schedule daily or weekly automatic updates** (`schedule`)
+  7. **Autonomous OSINT Hunter** (`hunt`) - Finds numbers from Reddit/forums
+  8. **Bulk lookup from a text file** (`bulk`)
+  9. **Whitelist or unwhitelist a number** (`whitelist`/`unwhitelist`)
+  10. **Manually add a confirmed scam number** (`add`)
+  11. **Recover historical records** (`deep-crawl`)
+  12. **Clean up stale/old data** (`decay`)
+  13. **Configure API keys** (`config`) 
 - Do not make up non-existent flags. Only use the commands mapped in the table.
 
 ## Agent Quick Commands
@@ -80,6 +93,12 @@ Use this skill when the user:
 | `hunt` | `node scripts/index.js hunt` |
 | `lookup <number>` | `node scripts/index.js lookup <number>` |
 | `add <num> <type> <notes>` | `node scripts/index.js add <num> <type> <notes>` |
+| `bulk <file>` | `node scripts/index.js bulk <file>` |
+| `whitelist <number>` | `node scripts/index.js whitelist <number>` |
+| `unwhitelist <number>` | `node scripts/index.js unwhitelist <number>` |
+| `decay` | `node scripts/index.js decay` |
+| `deep-crawl` | `node scripts/index.js deep-crawl` |
+| `config <key> <val>` | `node scripts/index.js config <key> <val>` |
 
 **CEO-Level Commands:**
 If the user asks for a high-level summary of the spam database, use the `stats` command.
