@@ -14,6 +14,7 @@ const { scrapeInternational } = require('./scrapers/international');
 const { scrapeSocialOSINT } = require('./scrapers/twitterScraper');
 const { runHistoricalCrawl } = require('./scrapers/archiveCrawler');
 const { scrapeGistFeed } = require('./scrapers/gistHunter');
+const { scrapeBBB } = require('./scrapers/bbbScraper');
 const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
@@ -39,11 +40,12 @@ const SCRAPERS = [
   { name: 'international', fn: (db) => scrapeInternational() },
   { name: 'social_hunter', fn: (db) => scrapeSocialOSINT() },
   { name: 'gist_hunter',   fn: (db) => scrapeGistFeed() },
+  { name: 'bbb_hunter',    fn: (db) => scrapeBBB() },
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
 const PARALLEL_GROUP_1 = ['github', 'nomorobolist'];
-const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'forums', 'shouldianswer', 'international', 'social_hunter', 'gist_hunter'];
+const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'forums', 'shouldianswer', 'international', 'social_hunter', 'gist_hunter', 'bbb_hunter'];
 const PARALLEL_GROUP_3 = ['validators'];
 
 const MAX_RETRIES = 2;

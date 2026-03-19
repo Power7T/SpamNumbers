@@ -47,28 +47,40 @@
             </div>
         </section>
 
-        <!-- SEARCH BAR -->
-        <section class="search-section glass">
-            <input type="text" id="search-input" placeholder="Enter phone number to instantly verify (e.g. +1800...)" autocomplete="off">
-            <button id="search-btn">CHECK OSINT</button>
-            <div id="search-results"></div>
+        <!-- SEARCH BAR REMOVED — REPLACED WITH LIVE COMMAND FEED -->
+        <section class="log-section glass">
+            <div class="card-header">
+                <h2>Live OSINT Discovery Log</h2>
+                <div class="controls">
+                    <span class="badge" style="background: rgba(0,255,0,0.1); border-color: #00e676; color: #00e676">SYSTEM OK</span>
+                </div>
+            </div>
+            <div id="live-log" class="terminal-log">
+                <p class="log-entry system">[SYSTEM] Dashboard initialized...</p>
+                <p class="log-entry system">[SYSTEM] Connected to Local SQLite (117,758 records)...</p>
+                <p class="log-entry system">[SYSTEM] Ready for next global sync...</p>
+            </div>
         </section>
 
         <!-- ACTIVITY GRID -->
         <div class="activity-container">
             <section class="table-card glass">
                 <div class="card-header">
-                    <h2>Live OSINT Feed</h2>
-                    <span class="badge">LATEST REPORTS</span>
+                    <h2>Recent Global Threats</h2>
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">ALL regions</button>
+                        <button class="filter-btn" data-filter="US">North America</button>
+                        <button class="filter-btn" data-filter="IN">Asia</button>
+                    </div>
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th>Number</th>
-                            <th>Threat Score</th>
-                            <th>Type</th>
-                            <th>Country</th>
-                            <th>Status</th>
+                            <th>Identified Signature</th>
+                            <th>Reputation</th>
+                            <th>Classification</th>
+                            <th>Origin</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="latest-table">
@@ -79,9 +91,16 @@
 
             <section class="chart-card glass">
                 <div class="card-header">
-                    <h2>Threat Distribution</h2>
+                    <h2>Threat Vectors</h2>
                 </div>
-                <canvas id="sourceChart"></canvas>
+                <div class="chart-wrapper">
+                    <canvas id="sourceChart"></canvas>
+                </div>
+                <div class="chart-footer">
+                    <div class="legend-item"><span class="dot" style="background:var(--accent)"></span> GitHub Master</div>
+                    <div class="legend-item"><span class="dot" style="background:var(--secondary)"></span> Tellows Hubs</div>
+                    <div class="legend-item"><span class="dot" style="background:var(--threat-high)"></span> Social Hunter</div>
+                </div>
             </section>
         </div>
     </main>

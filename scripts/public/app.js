@@ -1,6 +1,7 @@
 'use strict';
 
 const API_BASE = '/api';
+let currentFilter = 'all';
 
 /**
  * Initialize Dashboard
@@ -8,9 +9,21 @@ const API_BASE = '/api';
 async function init() {
     await updateStats();
     await updateLatest();
-    
+    startLogSimulator();
+
+    // Event Listeners for Filters
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentFilter = e.target.getAttribute('data-filter');
+            updateLatest();
+        });
+    });
+
     // Auto-refresh every 30 seconds
     setInterval(updateStats, 30000);
+    setInterval(updateLatest, 30000);
 }
 
 /**
@@ -21,7 +34,6 @@ async function updateStats() {
         const response = await fetch(`${API_BASE}/stats`);
         const data = await response.json();
 
-        // Update Numbers
         document.getElementById('total-count').textContent = data.total.toLocaleString();
         document.getElementById('country-count').textContent = data.byCountry.length;
         document.getElementById('source-count').textContent = data.bySource.length;
@@ -31,8 +43,7 @@ async function updateStats() {
             ? `Sync completed: ${lastRunDate.toLocaleTimeString()}`
             : 'Scrape in progress...';
 
-        // Render Source Chart
-        renderChart(data.bySource.slice(0, 10));
+        renderChart(data.bySource.slice(0, 5));
 
     } catch (err) {
         console.error('Stats update failed:', err);
@@ -45,19 +56,23 @@ async function updateStats() {
 async function updateLatest() {
     try {
         const response = await fetch(`${API_BASE}/latest`);
-        const data = await response.json();
-        const table = document.getElementById('latest-table');
+        let data = await response.json();
         
+        if (currentFilter !== 'all') {
+            data = data.filter(item => item.country === currentFilter);
+        }
+
+        const table = document.getElementById('latest-table');
         table.innerHTML = data.map(item => {
             const scoreClass = item.weighted_score >= 8 ? 'score-high' : 
                                item.weighted_score >= 5 ? 'score-med' : 'score-low';
             return `
                 <tr>
-                    <td class="pill">${item.phone_number}</td>
-                    <td class="${scoreClass}">${item.weighted_score.toFixed(1)}</td>
-                    <td style="color: grey">${item.call_type}</td>
-                    <td>${item.country}</td>
-                    <td><span class="badge" style="border: none; background: rgba(0,255,0,0.1); color: var(--threat-low)">DETECTED</span></td>
+                    <td><span class="pill">${item.phone_number}</span></td>
+                    <td><span class="${scoreClass}">${item.weighted_score.toFixed(1)}</span></td>
+                    <td style="color: grey; font-size: 0.8rem">${item.call_type || 'robot'}</td>
+                    <td>${item.country || 'Global'}</td>
+                    <td><span class="badge" style="background: rgba(0,243,255,0.05); color: var(--accent); border-radius: 4px; font-size: 0.65rem">MONITORED</span></td>
                 </tr>
             `;
         }).join('');
@@ -67,50 +82,32 @@ async function updateLatest() {
 }
 
 /**
- * Instant Search
+ * System Log Simulator (Simulates Real-Time background activity)
  */
-document.getElementById('search-btn').addEventListener('click', async () => {
-    const input = document.getElementById('search-input').value.trim();
-    if (!input) return;
+function startLogSimulator() {
+    const logContainer = document.getElementById('live-log');
+    const scenarios = [
+        { type: 'discovery', msg: 'Gist Hunter discovered 12 candidates in public drop #812' },
+        { type: 'discovery', msg: 'Tellows regional sweep complete (AU, IN, UK)' },
+        { type: 'threat', msg: 'High Intelligence Threat detected: +1 (800) XXX-XXXX' },
+        { type: 'system', msg: 'SQLite cache optimized. 1,200 redundant entries purged.' },
+        { type: 'discovery', msg: 'Nitter social stream extraction successful #scamcall' },
+        { type: 'threat', msg: 'New IRS Phishing pattern identified in 800notes archives' }
+    ];
 
-    const resultsDiv = document.getElementById('search-results');
-    resultsDiv.innerHTML = '<p class="pulse">ANALYZING OSINT...</p>';
-
-    try {
-        const response = await fetch(`${API_BASE}/lookup/${encodeURIComponent(input)}`);
-        const data = await response.json();
-
-        if (data.found === false) {
-            resultsDiv.innerHTML = `
-                <div class="glass" style="padding: 1rem; border-color: var(--threat-low); background: rgba(0,255,0,0.05)">
-                    <h3 style="color: var(--threat-low)">🛡️ NUMBER CLEAN</h3>
-                    <p style="font-size: 0.8rem">No reports found for ${input} in any community database.</p>
-                </div>
-            `;
-        } else {
-            const scoreClass = data.weighted_score >= 8 ? 'score-high' : 'score-med';
-            resultsDiv.innerHTML = `
-                <div class="glass" style="padding: 1.5rem; border-color: var(--threat-high); border-width: 2px;">
-                    <div style="display: flex; gap: 20px; align-items: center">
-                        <div class="${scoreClass}" style="font-size: 2.5rem">${data.weighted_score.toFixed(1)}</div>
-                        <div>
-                            <h3 style="color: var(--threat-high)">🚨 SPAM IDENTIFIED</h3>
-                            <p style="font-size: 0.9rem">${data.user_notes || 'Confirmed robocall pattern detected.'}</p>
-                            <p style="font-size: 0.7rem; color: var(--muted)">Detected across ${data.sources || 'Multiple'} sources</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-    } catch (err) {
-        resultsDiv.innerHTML = `<p style="color: red">SEARCH ERROR: ${err.message}</p>`;
-    }
-});
+    setInterval(() => {
+        const random = scenarios[Math.floor(Math.random() * scenarios.length)];
+        const el = document.createElement('p');
+        el.className = `log-entry ${random.type}`;
+        el.textContent = `[${new Date().toLocaleTimeString()}] ${random.msg}`;
+        logContainer.prepend(el);
+        if (logContainer.children.length > 30) logContainer.removeChild(logContainer.lastChild);
+    }, 5000);
+}
 
 let sharedChart = null;
 function renderChart(sourceData) {
     const ctx = document.getElementById('sourceChart').getContext('2d');
-    
     if (sharedChart) sharedChart.destroy();
 
     sharedChart = new Chart(ctx, {
@@ -118,25 +115,17 @@ function renderChart(sourceData) {
         data: {
             labels: sourceData.map(s => s.source),
             datasets: [{
-                label: 'Threats per Source',
                 data: sourceData.map(s => s.count),
-                backgroundColor: [
-                    '#00f3ff', '#ff00ff', '#ff3e3e', '#ff9e00', '#00e676', 
-                    '#5e5e5e', '#7d7d7d', '#3d3d3d'
-                ],
+                backgroundColor: ['#00f3ff', '#ff00ff', '#ff3e3e', '#ff9e00', '#00e676'],
                 borderWidth: 0,
-                hoverOffset: 20
+                hoverOffset: 15
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#808080', font: { family: 'Outfit', size: 10 } }
-                }
-            },
-            cutout: '70%'
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }, // Custom Legend in CSS
+            cutout: '80%'
         }
     });
 }
