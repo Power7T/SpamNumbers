@@ -19,7 +19,7 @@
 const fs = require('fs');
 const { getDb, closeDb } = require('./db/connection');
 const { initSchema } = require('./db/schema');
-const { lookupNumber, bulkLookup, whitelistNumber, unwhitelistNumber, decayStaleData, getStats } = require('./db/queries');
+const { lookupNumber, bulkLookup, whitelistNumber, unwhitelistNumber, decayStaleData, getStats, saveAI } = require('./db/queries');
 const { normalizePhone } = require('./normalizer');
 const { runAll, runHunt, runDeepCrawl } = require('./orchestrator');
 const { exportToCsv } = require('./exporter');
@@ -127,6 +127,7 @@ API VALIDATION
     export NUMVERIFY_API_KEY="your_key"
     export ABSTRACT_API_KEY="your_key"
     node index.js scrape
+  add <num> [type]    Manually add a confirmed scam number (Reasoning Engine Only)
 `);
 }
 
@@ -426,6 +427,24 @@ async function main() {
       }
 
 
+      case 'add': {
+        const phone = normalizePhone(args[0]);
+        const type = args[1] || 'scam';
+        const notes = args.slice(2).join(' ') || 'Added via AI Reasoning Engine';
+        if (!phone) {
+          console.error('Invalid phone number provided');
+          process.exit(1);
+        }
+        const { isNew } = saveAI(db, {
+          phone_number: phone, 
+          call_type: type, 
+          user_notes: notes,
+          spam_score: 10,
+          report_count: 1
+        });
+        console.log(`✅ ${phone} added to permanent threat grid (${isNew ? 'New Entry' : 'Aggregated'})`);
+        break;
+      }
       default: {
         console.error(`Unknown command: "${command}"`);
         printHelp();

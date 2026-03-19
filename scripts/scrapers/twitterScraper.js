@@ -1,58 +1,76 @@
 'use strict';
 
+const { fetchText, sleep, extractPhoneNumbers } = require('./base');
+const cheerio = require('cheerio');
+
 /**
- * Twitter/X OSINT Hunter (via Nitter)
- * Searches for real-time scam call reports on social media.
- * This is a 'Zero-API' approach to modern OSINT.
+ * Scrape Twitter via Nitter (no API keys required)
+ * Targeted keywords: "scam call", "robocall", "scammer", "fraud number"
  */
-
-const { fetchWithStealth } = require('../lib/stealth-browser');
-const { sleep, DELAY_MS } = require('./base');
-const { normalizePhone } = require('../normalizer');
-
-const NITTER_SEARCH_URL = 'https://nitter.net/search?f=tweets&q=%23scamcall+%23robocall+OR+%22called+me%22+OR+%22who+called%22';
-
 async function scrapeSocialOSINT() {
-  console.log('[social_hunter] Searching for real-time social OSINT reports...');
-  const records = [];
-  const seen = new Set();
+  const instances = [
+    'https://nitter.net',
+    'https://nitter.cz',
+    'https://nitter.it',
+    'https://nitter.privacydev.net'
+  ];
+  
+  const keywords = ['"scam call"', '"robocall"', '"scammer" phone', '"fraud number"'];
+  const allRecords = [];
 
-  try {
-    const { $, text } = await fetchWithStealth(NITTER_SEARCH_URL);
-    
-    // Look for numbers in tweet text
-    const phoneRegex = /([\d\-+()]{10,20})/g;
-    const matches = text.match(phoneRegex) || [];
-    const distinct = [...new Set(matches)];
+  for (const keyword of keywords) {
+    // Try multiple instances in case one is rate-limited
+    for (const baseUrl of instances) {
+      try {
+        const url = `${baseUrl}/search?f=tweets&q=${encodeURIComponent(keyword)}`;
+        console.log(`[social_hunter] Searching ${baseUrl} for ${keyword}...`);
+        
+        const html = await fetchText(url, { timeout: 15000 });
+        if (!html || html.includes('Rate limit exceeded')) continue;
 
-    let addedFromSocial = 0;
-    for (const rawNum of distinct) {
-      const phone = normalizePhone(rawNum);
-      if (!phone || seen.has(phone)) continue;
-      seen.add(phone);
+        const $ = cheerio.load(html);
+        const tweets = $('.timeline-item');
+        
+        tweets.each((_, el) => {
+          const content = $(el).find('.tweet-content').text();
+          const date = $(el).find('.tweet-date a').attr('title');
+          const author = $(el).find('.username').text();
+          
+          const numbers = extractPhoneNumbers(content);
+          for (const num of numbers) {
+            allRecords.push({
+              phone_number: num,
+              source: 'social_hunter',
+              spam_score: 8.0, // Real-time social reports are high signal
+              call_type: content.toLowerCase().includes('amazon') ? 'impersonation' : 'scam',
+              report_count: 1,
+              user_notes: `Twitter report by ${author}: ${content.slice(0, 200)}...`,
+              date_first_seen: date || new Date().toISOString(),
+              raw_data: JSON.stringify({ author, content, date })
+            });
+          }
+        });
 
-      records.push({
-        phone_number: phone,
-        source: 'social_osint',
-        spam_score: 8, // Social reports are usually very fresh and verified by user
-        call_type: 'scam',
-        country: 'Global',
-        report_count: 1,
-        user_notes: 'Detected via real-time social OSINT stream',
-        date_first_seen: new Date().toISOString(),
-        raw_data: JSON.stringify({ nitter: true }),
-      });
-      addedFromSocial++;
+        // If we got results, move to next keyword
+        if (tweets.length > 0) break;
+        
+      } catch (err) {
+        console.warn(`[social_hunter] ${baseUrl} failed: ${err.message}`);
+      }
+      await sleep(1000);
     }
-    
-    console.log(`[social_hunter]     ✓ Discovered ${addedFromSocial} fresh numbers from social reports`);
-
-  } catch (err) {
-    console.warn(`[social_hunter]   ⚠ Social search fail: ${err.message}`);
   }
 
-  console.log(`[social_hunter] Done — ${records.length} total records from social OSINT`);
-  return records;
+  // Deduplicate within this source
+  const seen = new Set();
+  const unique = allRecords.filter(r => {
+    if (seen.has(r.phone_number)) return false;
+    seen.add(r.phone_number);
+    return true;
+  });
+
+  console.log(`[social_hunter] Discovered ${unique.length} live threats from Twitter OSINT`);
+  return unique;
 }
 
 module.exports = { scrapeSocialOSINT };

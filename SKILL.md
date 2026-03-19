@@ -8,6 +8,32 @@ metadata:
     os: [linux, darwin, win32]
     requires:
       bins: ["node", "npm"]
+    tools:
+      - name: spam-numbers
+        description: Query the local spam database or run maintenance tasks.
+        parameters:
+          type: object
+          properties:
+            command:
+              type: string
+              enum: ["stats", "lookup", "hunt", "scrape", "export", "add"]
+            number:
+              type: string
+              description: "Phone number for lookup or add"
+            type:
+              type: string
+              description: "Scam category for add command"
+            notes:
+              type: string
+              description: "Reasoning context for add command"
+      - name: ai-hunt
+        description: "Perform an AI-driven OSINT search on the live web (Reddit, Forums, Pastebin) to find and extract new scam numbers."
+        parameters:
+          type: object
+          properties:
+            topic:
+              type: string
+              description: "Specific scam topic (e.g., 'IRS', 'Medicare', 'Amazon Fraud')"
 ---
 
 # Spam Numbers Skill
@@ -45,14 +71,15 @@ Use this skill when the user:
 
 | User says | Run this command |
 |-----------|------------------|
-| `scrape` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js scrape` |
-| `stats` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js stats` |
-| `export` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js export` |
-| `schedule daily` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule daily` |
-| `schedule weekly` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js schedule weekly` |
-| `status` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js status` |
-| `hunt` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js hunt` |
-| `lookup <number>` | `node /root/.openclaw/workspace/skills/spam-numbers/scripts/index.js lookup <number>` |
+| `scrape` | `node scripts/index.js scrape` |
+| `stats` | `node scripts/index.js stats` |
+| `export` | `node scripts/index.js export` |
+| `schedule daily` | `node scripts/index.js schedule daily` |
+| `schedule weekly` | `node scripts/index.js schedule weekly` |
+| `status` | `node scripts/index.js status` |
+| `hunt` | `node scripts/index.js hunt` |
+| `lookup <number>` | `node scripts/index.js lookup <number>` |
+| `add <num> <type> <notes>` | `node scripts/index.js add <num> <type> <notes>` |
 
 **CEO-Level Commands:**
 If the user asks for a high-level summary of the spam database, use the `stats` command.
@@ -63,6 +90,14 @@ Example: `@bot analyze spam risk for <number>` -> Run `lookup <number>` and give
 **Live Progress Tracking:**
 - When a scrape is running, if the user asks "how is it going?" or "any updates?", run the `status` command above to read the current progress log.
 - Do not wait for the main scrape to finish to report progress; you can run the `status` command independently.
+
+**AI OSINT Hunting:**
+When the user asks for "AI Hunt" or "Advanced Search", follow these steps:
+1. Use the **researcher** or **browser** tool to search for the latest reports of the given scam topic.
+2. Read the forum posts/pastebins found.
+3. Identify every phone number in the text.
+4. For each number, run: `node scripts/index.js add <number> <type> <context_found_in_text>`
+5. Report the total number of threats discovered and added to the grid.
 
 **Important:** When the user says just `scrape`, `scan`, or `scan for scam numbers`, immediately run the scrape command above. Do not ask for clarification.
 

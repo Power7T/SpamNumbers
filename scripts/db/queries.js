@@ -403,5 +403,16 @@ module.exports = {
   },
   clearStaleHealth: (db) => {
     db.prepare("DELETE FROM scraper_health WHERE source NOT IN ('github', 'spamcalls', 'tellows', 'syncme', 'nomorobolist', 'web_hunter', 'validator_apis')").run();
+  },
+  /**
+   * Save a single AI-discovered spam number. 
+   * High confidence by default (set by Agent).
+   */
+  saveAI: (db, record) => {
+    return upsertFromScraper(db, {
+      ...record,
+      source: 'ai_hunter',
+      date_first_seen: new Date().toISOString()
+    });
   }
 };

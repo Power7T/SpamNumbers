@@ -11,10 +11,10 @@ const { scrapeForums } = require('./scrapers/forumLists');
 const { scrapeYouMail } = require('./scrapers/youmail');
 const { scrapeShouldIAnswer } = require('./scrapers/shouldianswer');
 const { scrapeInternational } = require('./scrapers/international');
-const { scrapeSocialOSINT } = require('./scrapers/twitterScraper');
-const { runHistoricalCrawl } = require('./scrapers/archiveCrawler');
-const { scrapeGistFeed } = require('./scrapers/gistHunter');
 const { scrapeBBB } = require('./scrapers/bbbScraper');
+const { scrapeHFDataset } = require('./scrapers/hfHunter');
+const { scrapeSocialOSINT } = require('./scrapers/twitterScraper');
+const { scrapeGistFeed } = require('./scrapers/gistHunter');
 const { upsertFromScraper, upsertManyFromScraper, insertRunLog, finalizeRunLog, updateScraperHealth, decayStaleData } = require('./db/queries');
 const { sleep } = require('./scrapers/base');
 const fs = require('fs');
@@ -39,13 +39,14 @@ const SCRAPERS = [
   { name: 'shouldianswer', fn: (db) => scrapeShouldIAnswer() },
   { name: 'international', fn: (db) => scrapeInternational() },
   { name: 'social_hunter', fn: (db) => scrapeSocialOSINT() },
+  { name: 'hf_hunter',     fn: (db) => scrapeHFDataset() },
   { name: 'gist_hunter',   fn: (db) => scrapeGistFeed() },
   { name: 'bbb_hunter',    fn: (db) => scrapeBBB() },
 ];
 
 // Scrapers that can safely run in parallel (no shared rate limits)
 const PARALLEL_GROUP_1 = ['github', 'nomorobolist'];
-const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'forums', 'shouldianswer', 'international', 'social_hunter', 'gist_hunter', 'bbb_hunter'];
+const PARALLEL_GROUP_2 = ['spamcalls', 'tellows', 'forums', 'shouldianswer', 'international', 'social_hunter', 'gist_hunter', 'bbb_hunter', 'hf_hunter'];
 const PARALLEL_GROUP_3 = ['validators'];
 
 const MAX_RETRIES = 2;

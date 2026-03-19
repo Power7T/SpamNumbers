@@ -11,10 +11,10 @@ const { runAll } = require('./orchestrator');
  * @param {String} frequency - 'daily' or 'weekly'
  */
 async function startScheduler(db, frequency = 'weekly') {
-  const CRON_EXPRESSION = frequency === 'daily' ? '0 2 * * *' : '0 2 * * 0';
+  const CRON_EXPRESSION = frequency === 'daily' ? '0 2 * * *' : frequency === 'continuous' ? '0 */4 * * *' : '0 2 * * 0';
   
   console.log(`[scheduler] Starting spam-numbers ${frequency} scheduler`);
-  console.log(`[scheduler] Schedule: ${CRON_EXPRESSION} (every ${frequency === 'daily' ? 'day' : 'Sunday'} at 02:00 AM)`);
+  console.log(`[scheduler] Schedule: ${CRON_EXPRESSION} (every ${frequency === 'daily' ? 'day' : frequency === 'continuous' ? '4 hours' : 'Sunday'})`);
 
   // Run immediately on first start
   console.log('[scheduler] Running initial scrape now...\n');
