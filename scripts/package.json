@@ -15,9 +15,11 @@
     "better-sqlite3": "^9.6.0",
     "cheerio": "^1.0.0",
     "csv-stringify": "^6.4.6",
+    "google-libphonenumber": "^3.2.37",
     "libphonenumber-js": "^1.11.4",
     "node-cron": "^3.0.3",
     "node-fetch": "^2.7.0",
+    "puppeteer-api-proxy": "^1.2.0",
     "puppeteer-core": "^24.39.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
