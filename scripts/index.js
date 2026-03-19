@@ -248,31 +248,8 @@ async function main() {
   try {
     switch (command) {
       case 'scrape': {
-        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        const question = (q) => new Promise((resolve) => rl.question(q, resolve));
-
-        const keysToCheck = [
-          { env: 'NUMVERIFY_API_KEY', name: 'NumVerify Validator API', skipEnv: 'SKIP_NUMVERIFY_API' },
-          { env: 'ABSTRACT_API_KEY', name: 'Abstract Validator API', skipEnv: 'SKIP_ABSTRACT_API' },
-        ];
-
-        for (const k of keysToCheck) {
-          if (!process.env[k.env] && !process.env[k.skipEnv]) {
-            console.log(`\n🔑 Missing API Key: ${k.name}`);
-            const answer = await question(`Enter key (or "skip" to ignore this time, or "permanent" to never ask again): `);
-            const trimmed = answer.trim();
-            if (trimmed === 'permanent') {
-              saveEnv(k.skipEnv, 'true');
-              console.log(`✅ Permanently skipped ${k.name}. To re-enable, manually edit scripts/.env`);
-            } else if (trimmed && trimmed !== 'skip') {
-              saveEnv(k.env, trimmed);
-              console.log(`✅ ${k.name} key saved.`);
-            } else {
-              console.log(`⏭ Skipping ${k.name} for this run.`);
-            }
-          }
-        }
-        rl.close();
+        // Headless API Key validation is now managed purely via the Web UI Settings panel.
+        // Bypassing blocking TTY Prompts...
 
         await runAll(db);
         break;
