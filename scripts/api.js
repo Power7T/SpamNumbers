@@ -7,7 +7,7 @@ const path = require('path');
 const { getStats, lookupNumber, getAllNumbers } = require('./db/queries');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5555;
 const dbDir = path.join(__dirname, 'data');
 const dbPath = path.join(dbDir, 'spam_numbers.db');
 const db = new Database(dbPath);

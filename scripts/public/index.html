@@ -3,106 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenClaw | Spam Discovery Dashboard</title>
+    <title>OpenClaw | Global Threat Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="glow"></div>
     
-    <nav class="glass">
-        <div class="logo">
-            <span class="claws">///</span> OPENCLAW <span>SPAM-RADAR</span>
-        </div>
-        <div class="status">
-            <span class="pulse"></span> LIVE OSINT STREAMING
-        </div>
-    </nav>
+    <!-- SCANLINE OVERLAY -->
+    <div class="scanlines"></div>
 
-    <main>
-        <!-- STATS GRID -->
-        <section class="stats-grid">
-            <div class="card glass">
-                <h3>Total Spammers</h3>
-                <h1 id="total-count">0</h1>
-                <p>Global OSINT Local Cache</p>
+    <header class="glass-header">
+        <div class="logo-box">
+            <div class="pulse-ring"></div>
+            <h1>OPEN<span class="highlight">CLAW</span></h1>
+        </div>
+        <div class="system-status">
+            <span class="status-dot"></span>
+            DEFCON 3 / OSINT GRID ACTIVE
+        </div>
+        <div id="clock" class="digital-clock">00:00:00</div>
+    </header>
+
+    <main class="dashboard-grid">
+        
+        <!-- LEFT COLUMN: RADAR & STATS -->
+        <aside class="left-panel">
+            <div class="panel-card glass-panel radar-container">
+                <div class="radar">
+                    <div class="sweep"></div>
+                    <!-- Dots will be populated by JS to simulate threats -->
+                    <div id="radar-blips"></div>
+                </div>
+                <div class="radar-label">GLOBAL TRAFFIC SENSOR</div>
             </div>
-            <div class="card glass">
-                <h3>Countries Tracked</h3>
-                <h1 id="country-count">0</h1>
-                <p>Regions with Active Threats</p>
-            </div>
-            <div class="card glass">
-                <h3>Verified Sources</h3>
-                <h1 id="source-count">0</h1>
-                <p>Community Databases Integrated</p>
-            </div>
-            <div class="card glass">
-                <h3>Last Global Scrape</h3>
-                <p id="last-run">Just now</p>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" id="sync-progress"></div>
+
+            <div class="panel-card glass-panel stats-list">
+                <h3>NETWORK TELEMETRY</h3>
+                <div class="stat-row">
+                    <span>Signatures Indexed</span>
+                    <strong id="total-count" class="cyan">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Threat Vectors</span>
+                    <strong id="source-count" class="magenta">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Geolocations</span>
+                    <strong id="country-count" class="green">0</strong>
+                </div>
+                <div class="stat-row">
+                    <span>Last Uplink</span>
+                    <strong id="last-run" class="muted">Syncing...</strong>
                 </div>
             </div>
-        </section>
 
-        <!-- SEARCH BAR REMOVED — REPLACED WITH LIVE COMMAND FEED -->
-        <section class="log-section glass">
-            <div class="card-header">
-                <h2>Live OSINT Discovery Log</h2>
-                <div class="controls">
-                    <span class="badge" style="background: rgba(0,255,0,0.1); border-color: #00e676; color: #00e676">SYSTEM OK</span>
+            <div class="panel-card glass-panel target-profile" id="target-profile" style="display:none;">
+                <h3>THREAT ANALYSIS <span class="badge red">CRITICAL</span></h3>
+                <h2 id="target-phone" class="cyan"></h2>
+                <div class="target-meta">
+                    <p><strong>Vector:</strong> <span id="target-source"></span></p>
+                    <p><strong>Confidence:</strong> <span id="target-score"></span>/10.0</p>
+                    <p><strong>Behavior:</strong> <span id="target-type"></span></p>
+                    <p><strong>Geofence:</strong> <span id="target-country"></span></p>
                 </div>
+                <div class="target-notes" id="target-notes"></div>
+                <button class="action-btn" id="close-profile">CLOSE DOSSIER</button>
             </div>
-            <div id="live-log" class="terminal-log">
-                <p class="log-entry system">[SYSTEM] Dashboard initialized...</p>
-                <p class="log-entry system">[SYSTEM] Connected to Local SQLite (117,758 records)...</p>
-                <p class="log-entry system">[SYSTEM] Ready for next global sync...</p>
-            </div>
-        </section>
+        </aside>
 
-        <!-- ACTIVITY GRID -->
-        <div class="activity-container">
-            <section class="table-card glass">
-                <div class="card-header">
-                    <h2>Recent Global Threats</h2>
+        <!-- CENTER COLUMN: LIVE THREAT STREAM -->
+        <section class="center-panel">
+            <div class="panel-card glass-panel flex-grow">
+                <div class="card-header border-bottom">
+                    <h2>REAL-TIME THREAT INGESTION</h2>
                     <div class="filter-group">
-                        <button class="filter-btn active" data-filter="all">ALL regions</button>
-                        <button class="filter-btn" data-filter="US">North America</button>
-                        <button class="filter-btn" data-filter="IN">Asia</button>
+                        <button class="filter-btn active" data-filter="all">GLOBAL</button>
+                        <button class="filter-btn" data-filter="US">DOMESTIC (US)</button>
+                        <button class="filter-btn" data-filter="IN">ASIA-PAC</button>
                     </div>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Identified Signature</th>
-                            <th>Reputation</th>
-                            <th>Classification</th>
-                            <th>Origin</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="latest-table">
-                        <!-- Content via JS -->
-                    </tbody>
-                </table>
-            </section>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>IDENTITY</th>
+                                <th>SCORE</th>
+                                <th>CLASSIFICATION</th>
+                                <th>ORIGIN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="latest-table">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-            <section class="chart-card glass">
-                <div class="card-header">
-                    <h2>Threat Vectors</h2>
+        <!-- RIGHT COLUMN: TERMINAL LOG & INSIGHTS -->
+        <aside class="right-panel">
+            
+            <div class="panel-card glass-panel logger-card">
+                <h3>SYSTEM TERMINAL</h3>
+                <div id="live-log" class="terminal-box">
+                    <p class="log-entry system">[BOOT] Initializing OpenClaw Defense Grid...</p>
+                    <p class="log-entry system">[OPSEC] Establishing Cloudflare Bypasses...</p>
                 </div>
+            </div>
+
+            <div class="panel-card glass-panel chart-box">
+                <h3>VECTOR DISTRIBUTION</h3>
                 <div class="chart-wrapper">
-                    <canvas id="sourceChart"></canvas>
+                    <!-- Custom Bar Chart driven by JS to avoid external libs if not needed, or we use a simple DOM chart -->
+                    <div id="bar-chart" class="css-bar-chart"></div>
                 </div>
-                <div class="chart-footer">
-                    <div class="legend-item"><span class="dot" style="background:var(--accent)"></span> GitHub Master</div>
-                    <div class="legend-item"><span class="dot" style="background:var(--secondary)"></span> Tellows Hubs</div>
-                    <div class="legend-item"><span class="dot" style="background:var(--threat-high)"></span> Social Hunter</div>
-                </div>
-            </section>
-        </div>
+            </div>
+
+        </aside>
+
     </main>
 
     <script src="app.js"></script>

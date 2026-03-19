@@ -2,133 +2,229 @@
 
 const API_BASE = '/api';
 let currentFilter = 'all';
+let rawData = [];
 
 /**
- * Initialize Dashboard
+ * Boot Sequence
  */
 async function init() {
+    updateClock();
+    setInterval(updateClock, 1000);
+    
     await updateStats();
-    await updateLatest();
-    startLogSimulator();
+    await fetchLatest();
+    startTerminalSim();
+    spawnRadarBlips();
 
-    // Event Listeners for Filters
+    // Filters
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentFilter = e.target.getAttribute('data-filter');
-            updateLatest();
+            renderTable();
         });
     });
 
-    // Auto-refresh every 30 seconds
+    // Close Target Profile
+    document.getElementById('close-profile').addEventListener('click', () => {
+        document.getElementById('target-profile').style.display = 'none';
+        document.querySelectorAll('#latest-table tr').forEach(tr => tr.classList.remove('selected'));
+    });
+
+    // Sync loops
     setInterval(updateStats, 30000);
-    setInterval(updateLatest, 30000);
+    setInterval(fetchLatest, 30000);
 }
 
 /**
- * Fetch and Render Stats
+ * Digital Clock
+ */
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false }) + ' UTC';
+}
+
+/**
+ * Fetch Main Telemetry
  */
 async function updateStats() {
     try {
         const response = await fetch(`${API_BASE}/stats`);
-        const data = await response.json();
+        const stats = await response.json();
 
-        document.getElementById('total-count').textContent = data.total.toLocaleString();
-        document.getElementById('country-count').textContent = data.byCountry.length;
-        document.getElementById('source-count').textContent = data.bySource.length;
+        // Animate counter
+        animateValue('total-count', parseInt(document.getElementById('total-count').innerText) || 0, stats.total, 1000);
+        document.getElementById('country-count').textContent = stats.byCountry.length;
+        document.getElementById('source-count').textContent = stats.bySource.length;
         
-        const lastRunDate = data.lastRun?.finished_at ? new Date(data.lastRun.finished_at) : null;
-        document.getElementById('last-run').textContent = lastRunDate 
-            ? `Sync completed: ${lastRunDate.toLocaleTimeString()}`
-            : 'Scrape in progress...';
+        const lastRun = stats.lastRun?.finished_at ? new Date(stats.lastRun.finished_at) : null;
+        document.getElementById('last-run').textContent = lastRun ? lastRun.toLocaleTimeString('en-US', {hour12:false}) : 'SCANNING...';
 
-        renderChart(data.bySource.slice(0, 5));
+        renderCssBarChart(stats.bySource.slice(0, 6));
+    } catch (e) { console.error('Telemetry err:', e); }
+}
 
-    } catch (err) {
-        console.error('Stats update failed:', err);
-    }
+function animateValue(id, start, end, duration) {
+    if (start === end) return;
+    let range = end - start;
+    let current = start;
+    let increment = end > start ? Math.ceil(range / 60) : Math.floor(range / 60);
+    let stepTime = Math.abs(Math.floor(duration / (range / increment)));
+    let obj = document.getElementById(id);
+    let timer = setInterval(function() {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+        }
+        obj.innerHTML = current.toLocaleString();
+    }, stepTime);
 }
 
 /**
- * Fetch and Render Latest Table
+ * Fetch Live Threat Stream
  */
-async function updateLatest() {
+async function fetchLatest() {
     try {
         const response = await fetch(`${API_BASE}/latest`);
-        let data = await response.json();
-        
-        if (currentFilter !== 'all') {
-            data = data.filter(item => item.country === currentFilter);
-        }
+        rawData = await response.json();
+        renderTable();
+    } catch (err) { console.error('Stream err:', err); }
+}
 
-        const table = document.getElementById('latest-table');
-        table.innerHTML = data.map(item => {
-            const scoreClass = item.weighted_score >= 8 ? 'score-high' : 
-                               item.weighted_score >= 5 ? 'score-med' : 'score-low';
-            return `
-                <tr>
-                    <td><span class="pill">${item.phone_number}</span></td>
-                    <td><span class="${scoreClass}">${item.weighted_score.toFixed(1)}</span></td>
-                    <td style="color: grey; font-size: 0.8rem">${item.call_type || 'robot'}</td>
-                    <td>${item.country || 'Global'}</td>
-                    <td><span class="badge" style="background: rgba(0,243,255,0.05); color: var(--accent); border-radius: 4px; font-size: 0.65rem">MONITORED</span></td>
-                </tr>
-            `;
-        }).join('');
-    } catch (err) {
-        console.error('Latest update failed:', err);
+function renderTable() {
+    const table = document.getElementById('latest-table');
+    let filtered = rawData;
+    
+    if (currentFilter !== 'all') {
+        filtered = rawData.filter(item => item.country === currentFilter);
     }
+
+    table.innerHTML = filtered.map(item => {
+        const pScore = parseFloat(item.weighted_score);
+        const scoreClass = pScore >= 8 ? 'score-high' : pScore >= 5 ? 'score-med' : 'score-low';
+        
+        return `
+            <tr onclick="inspectTarget('${item.phone_number}')" data-phone="${item.phone_number}">
+                <td><span class="pill">${item.phone_number}</span></td>
+                <td><span class="${scoreClass}">${item.weighted_score.toFixed(1)}</span></td>
+                <td style="color:#a3a3a3">${(item.call_type || 'robot').toUpperCase()}</td>
+                <td style="color:var(--cyan)">${item.country || 'GLOBAL'}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 /**
- * System Log Simulator (Simulates Real-Time background activity)
+ * Dossier Inspection (Interactive Click)
  */
-function startLogSimulator() {
-    const logContainer = document.getElementById('live-log');
+function inspectTarget(phone) {
+    // UI selection
+    document.querySelectorAll('#latest-table tr').forEach(tr => tr.classList.remove('selected'));
+    const row = document.querySelector(`tr[data-phone="${phone}"]`);
+    if(row) row.classList.add('selected');
+
+    // Data binding
+    const item = rawData.find(i => i.phone_number === phone);
+    if (!item) return;
+
+    document.getElementById('target-profile').style.display = 'block';
+    document.getElementById('target-phone').textContent = item.phone_number;
+    document.getElementById('target-source').textContent = (item.source || 'UNKNOWN').toUpperCase();
+    document.getElementById('target-score').textContent = item.weighted_score.toFixed(1);
+    document.getElementById('target-type').textContent = (item.call_type || 'UNKNOWN').toUpperCase();
+    document.getElementById('target-country').textContent = (item.country || 'GLOBAL').toUpperCase();
+    
+    document.getElementById('target-notes').innerHTML = `
+        ACCESSING DATABASE... <br>
+        [SEEN]: ${new Date(item.date_first_seen).toLocaleString()} <br>
+        [INTEL]: ${item.user_notes || 'No extended intelligence available.'}
+    `;
+    
+    // Add terminal log entry for activity
+    addLog(`[USER] Inspecting Dossier for Node: ${item.phone_number}`, 'system');
+}
+
+/**
+ * Native CSS Bar Chart Builder (Replaces heavy JS libs)
+ */
+function renderCssBarChart(sourceData) {
+    const container = document.getElementById('bar-chart');
+    if (!sourceData.length) return;
+    
+    const maxVal = Math.max(...sourceData.map(s => s.count));
+    const colors = ['var(--cyan)', 'var(--magenta)', 'var(--green)', 'var(--red)', '#fff', '#aaa'];
+    
+    container.innerHTML = sourceData.map((s, idx) => {
+        const percent = Math.max(5, (s.count / maxVal) * 100);
+        return `
+            <div class="bar-row">
+                <div class="bar-label">${s.source.toUpperCase()}</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: ${percent}%; background: ${colors[idx % colors.length]};"></div>
+                </div>
+                <div class="bar-value">${s.count.toLocaleString()}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Radar Blip Animator
+ */
+function spawnRadarBlips() {
+    const radar = document.getElementById('radar-blips');
+    setInterval(() => {
+        if(radar.children.length > 5) radar.removeChild(radar.firstChild);
+        
+        const blip = document.createElement('div');
+        blip.className = 'blip';
+        
+        // Random coords within the circle
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * 60; // 150/2 = 75
+        const x = Math.cos(angle) * radius + 75;
+        const y = Math.sin(angle) * radius + 75;
+        
+        blip.style.left = `${x}px`;
+        blip.style.top = `${y}px`;
+        
+        // Color randomization to simulate varing threats
+        const colors = ['var(--red)', 'var(--cyan)', 'var(--magenta)'];
+        blip.style.background = colors[Math.floor(Math.random() * colors.length)];
+        
+        radar.appendChild(blip);
+    }, 1500);
+}
+
+/**
+ * Terminal Simulator
+ */
+function startTerminalSim() {
     const scenarios = [
-        { type: 'discovery', msg: 'Gist Hunter discovered 12 candidates in public drop #812' },
-        { type: 'discovery', msg: 'Tellows regional sweep complete (AU, IN, UK)' },
-        { type: 'threat', msg: 'High Intelligence Threat detected: +1 (800) XXX-XXXX' },
-        { type: 'system', msg: 'SQLite cache optimized. 1,200 redundant entries purged.' },
-        { type: 'discovery', msg: 'Nitter social stream extraction successful #scamcall' },
-        { type: 'threat', msg: 'New IRS Phishing pattern identified in 800notes archives' }
+        { type: 'discovery', msg: 'Cloud-Vacuum (Gists): Intercepted 4 blocklists' },
+        { type: 'system', msg: 'System integrity 100%. Handshake complete.' },
+        { type: 'threat', msg: 'WARNING: Sudden surge in Spain (Tellows ES)' },
+        { type: 'discovery', msg: 'Nitter Socket: Stream synced. Extracted 8 sigs' },
+        { type: 'threat', msg: 'Deep-Stealth Archive: Bypassing Check...' },
+        { type: 'discovery', msg: 'BBB Scraper: 53 consumer entries digested' }
     ];
 
     setInterval(() => {
         const random = scenarios[Math.floor(Math.random() * scenarios.length)];
-        const el = document.createElement('p');
-        el.className = `log-entry ${random.type}`;
-        el.textContent = `[${new Date().toLocaleTimeString()}] ${random.msg}`;
-        logContainer.prepend(el);
-        if (logContainer.children.length > 30) logContainer.removeChild(logContainer.lastChild);
-    }, 5000);
+        addLog(random.msg, random.type);
+    }, 6000);
 }
 
-let sharedChart = null;
-function renderChart(sourceData) {
-    const ctx = document.getElementById('sourceChart').getContext('2d');
-    if (sharedChart) sharedChart.destroy();
-
-    sharedChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: sourceData.map(s => s.source),
-            datasets: [{
-                data: sourceData.map(s => s.count),
-                backgroundColor: ['#00f3ff', '#ff00ff', '#ff3e3e', '#ff9e00', '#00e676'],
-                borderWidth: 0,
-                hoverOffset: 15
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } }, // Custom Legend in CSS
-            cutout: '80%'
-        }
-    });
+function addLog(msg, type) {
+    const logBox = document.getElementById('live-log');
+    const el = document.createElement('p');
+    el.className = `log-entry ${type}`;
+    el.innerHTML = `[${new Date().toLocaleTimeString('en-US',{hour12:false})}] ${msg}`;
+    logBox.prepend(el);
+    if (logBox.children.length > 50) logBox.removeChild(logBox.lastChild);
 }
 
-// Start app
+// Start sequence
 init();
