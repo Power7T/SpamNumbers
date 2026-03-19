@@ -63,20 +63,20 @@ Use this skill when the user:
 **User Query Handling Rules:**
 - DO NOT EXPLAIN OR CHAT UNLESS REQUIRED. Just execute the exact script and output the result.
 - If the user sends the single word "spam", do not run any scripts. Instead, immediately reply with a numbered list of all the things you can do:
-  1. **Scan and add new spam numbers** (`scrape`)
-  2. **Show a high-level spam database report** (`stats`)
-  3. **Check the live status of a running task** (`status`)
-  4. **Export the database to CSV** (`export`) — *If on Telegram/mobile, I will attach the file. If on PC/Dashboard, I will download it directly to your Downloads folder.*
-  5. **Look up a specific number** (`lookup`)
-  6. **Schedule daily or weekly automatic updates** (`schedule`)
-  7. **Autonomous OSINT Hunter** (`hunt`) - Finds numbers from Reddit/forums
-  8. **Bulk lookup from a text file** (`bulk`)
-  9. **Whitelist or unwhitelist a number** (`whitelist`/`unwhitelist`)
-  10. **Manually add a confirmed scam number** (`add`)
-  11. **Recover historical records** (`deep-crawl`)
-  12. **Clean up stale/old data** (`decay`)
-  13. **Configure API keys** (`config`)
-  14. **🔥 Master Defense Sequence** (`full-scan`) - Runs 1, 7, 11, and 12 in one go.
+  1. **🔥 Master Defense Sequence** (`full-scan`) - Runs all scans & cleanup in one go.
+  2. **Scan and add new spam numbers** (`scrape`)
+  3. **Show a high-level spam database report** (`stats`)
+  4. **Check the live status of a running task** (`status`)
+  5. **Export the database to CSV** (`export`) — *If on Telegram/mobile, I will attach the file. If on PC/Dashboard, I will download it directly to your Downloads folder.*
+  6. **Look up a specific number** (`lookup`)
+  7. **Schedule daily or weekly automatic updates** (`schedule`)
+  8. **Autonomous OSINT Hunter** (`hunt`) - Finds numbers from Reddit/forums
+  9. **Bulk lookup from a text file** (`bulk`)
+  10. **Whitelist or unwhitelist a number** (`whitelist`/`unwhitelist`)
+  11. **Manually add a confirmed scam number** (`add`)
+  12. **Recover historical records** (`deep-crawl`)
+  13. **Clean up stale/old data** (`decay`)
+  14. **Configure API keys** (`config`) 
 - Do not make up non-existent flags. Only use the commands mapped in the table.
 
 ## Agent Quick Commands
