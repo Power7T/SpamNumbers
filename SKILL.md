@@ -75,7 +75,8 @@ Use this skill when the user:
   10. **Manually add a confirmed scam number** (`add`)
   11. **Recover historical records** (`deep-crawl`)
   12. **Clean up stale/old data** (`decay`)
-  13. **Configure API keys** (`config`) 
+  13. **Configure API keys** (`config`)
+  14. **🔥 Master Defense Sequence** (`full-scan`) - Runs 1, 7, 11, and 12 in one go.
 - Do not make up non-existent flags. Only use the commands mapped in the table.
 
 ## Agent Quick Commands
@@ -98,6 +99,7 @@ Use this skill when the user:
 | `unwhitelist <number>` | `node scripts/index.js unwhitelist <number>` |
 | `decay` | `node scripts/index.js decay` |
 | `deep-crawl` | `node scripts/index.js deep-crawl` |
+| `full-scan` | `node scripts/index.js full-scan` |
 | `config <key> <val>` | `node scripts/index.js config <key> <val>` |
 
 **CEO-Level Commands:**

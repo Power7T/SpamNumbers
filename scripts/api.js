@@ -87,7 +87,8 @@ app.post('/api/start', (req, res) => {
     'hunt': { log: '[🏹] Starting Autonomous OSINT Hunt...', args: ['hunt'] },
     'decay': { log: '[SYS] Running Stale Data Cleanup...', args: ['decay'] },
     'deep-crawl': { log: '[📦] Initializing Historical Deep-Crawl...', args: ['deep-crawl'] },
-    'export': { log: '[SYS] Triggering Global Intelligence Export...', args: ['export'] }
+    'export': { log: '[SYS] Triggering Global Intelligence Export...', args: ['export'] },
+    'full-scan': { log: '[🔥] BOOTING MASTER DEFENSE SEQUENCE...', args: ['full-scan'] }
   };
 
   const op = commandMap[command] || commandMap['scrape'];

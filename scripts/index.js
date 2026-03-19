@@ -21,7 +21,7 @@ const { getDb, closeDb } = require('./db/connection');
 const { initSchema } = require('./db/schema');
 const { lookupNumber, bulkLookup, whitelistNumber, unwhitelistNumber, decayStaleData, getStats, saveAI } = require('./db/queries');
 const { normalizePhone } = require('./normalizer');
-const { runAll, runHunt, runDeepCrawl } = require('./orchestrator');
+const { runAll, runHunt, runDeepCrawl, runFullScan } = require('./orchestrator');
 const { exportToCsv } = require('./exporter');
 const { startScheduler } = require('./scheduler');
 const { closeStealthBrowser } = require('./lib/stealth-browser');
@@ -363,6 +363,11 @@ async function main() {
         console.log('Running stale data cleanup...');
         const { decayed, deleted } = decayStaleData(db);
         console.log(`Done: ${decayed} scores decayed, ${deleted} stale entries removed`);
+        break;
+      }
+
+      case 'full-scan': {
+        await runFullScan(db);
         break;
       }
 

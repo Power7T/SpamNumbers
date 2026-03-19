@@ -258,4 +258,25 @@ async function runDeepCrawl(db) {
   return { discovered: records.length, newCount, updatedCount };
 }
 
-module.exports = { runAll, runHunt, runDeepCrawl };
+/**
+ * Perform a full global intelligence sweep (All scans combined)
+ */
+async function runFullScan(db) {
+  console.log('\n[MASTER] 🔥 INITIALIZING GLOBAL DEFENSE SEQUENCE...');
+  
+  console.log('[MASTER] Phase 1: Standard OSINT Scrape...');
+  await runAll(db);
+  
+  console.log('\n[MASTER] Phase 2: Autonomous OSINT Hunt...');
+  await runHunt(db);
+  
+  console.log('\n[MASTER] Phase 3: Historical Deep Archive Crawl...');
+  await runDeepCrawl(db);
+  
+  console.log('\n[MASTER] Phase 4: Stale Data Cleanup (Decay)...');
+  decayStaleData(db);
+  
+  console.log('\n[MASTER] ✅ GLOBAL DEFENSE SEQUENCE COMPLETE.\n');
+}
+
+module.exports = { runAll, runHunt, runDeepCrawl, runFullScan };

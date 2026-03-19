@@ -41,6 +41,7 @@ async function init() {
     document.getElementById('btn-deep-crawl').addEventListener('click', () => runOperation('deep-crawl'));
     document.getElementById('btn-decay').addEventListener('click', () => runOperation('decay'));
     document.getElementById('btn-export').addEventListener('click', triggerExport);
+    document.getElementById('btn-full-scan').addEventListener('click', () => runOperation('full-scan'));
     document.getElementById('btn-manual-add').addEventListener('click', openAddModal);
     document.getElementById('btn-close-add').addEventListener('click', closeAddModal);
     document.getElementById('add-form').addEventListener('submit', injectThreat);
