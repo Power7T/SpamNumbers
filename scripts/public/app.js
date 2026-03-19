@@ -238,8 +238,8 @@ function spawnRadarBlips() {
         const x = Math.cos(angle) * radius + 75;
         const y = Math.sin(angle) * radius + 75;
         
-        blip.style.left = \`\${x}px\`;
-        blip.style.top = \`\${y}px\`;
+        blip.style.left = `${x}px`;
+        blip.style.top = `${y}px`;
         
         const colors = ['var(--red)', 'var(--cyan)', 'var(--magenta)'];
         blip.style.background = colors[Math.floor(Math.random() * colors.length)];
