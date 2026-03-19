@@ -359,13 +359,6 @@ async function main() {
         break;
       }
 
-      case 'decay': {
-        console.log('Running stale data cleanup...');
-        const { decayed, deleted } = decayStaleData(db);
-        console.log(`Done: ${decayed} scores decayed, ${deleted} stale entries removed`);
-        break;
-      }
-
       case 'full-scan': {
         await runFullScan(db);
         break;

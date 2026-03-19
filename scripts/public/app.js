@@ -39,7 +39,6 @@ async function init() {
     // Grid Operations
     document.getElementById('btn-hunt').addEventListener('click', () => runOperation('hunt'));
     document.getElementById('btn-deep-crawl').addEventListener('click', () => runOperation('deep-crawl'));
-    document.getElementById('btn-decay').addEventListener('click', () => runOperation('decay'));
     document.getElementById('btn-export').addEventListener('click', triggerExport);
     document.getElementById('btn-full-scan').addEventListener('click', () => runOperation('full-scan'));
     document.getElementById('btn-manual-add').addEventListener('click', openAddModal);

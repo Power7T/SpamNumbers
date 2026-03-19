@@ -85,7 +85,6 @@ app.post('/api/start', (req, res) => {
   const commandMap = {
     'scrape': { log: '[OPSEC] Spawning Headless Chromium Clusters...', args: ['scrape'] },
     'hunt': { log: '[🏹] Starting Autonomous OSINT Hunt...', args: ['hunt'] },
-    'decay': { log: '[SYS] Running Stale Data Cleanup...', args: ['decay'] },
     'deep-crawl': { log: '[📦] Initializing Historical Deep-Crawl...', args: ['deep-crawl'] },
     'export': { log: '[SYS] Triggering Global Intelligence Export...', args: ['export'] },
     'full-scan': { log: '[🔥] BOOTING MASTER DEFENSE SEQUENCE...', args: ['full-scan'] }

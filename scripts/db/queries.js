@@ -225,35 +225,11 @@ function unwhitelistNumber(db, phoneNumber) {
 }
 
 /**
- * Decay scores for numbers not updated in the given number of days.
- * Reduces spam_score by decayFactor for stale entries.
- * Deletes entries with score below threshold after decay.
+ * DEPRECATED: Decay logic removed as per user request.
+ * Spam numbers now stay in the database permanently.
  */
-function decayStaleData(db, staleDays = 180, decayFactor = 0.5, deleteThreshold = 1.0) {
-  const cutoff = new Date(Date.now() - staleDays * 86400000).toISOString();
-
-  const decayed = db.prepare(`
-    UPDATE spam_numbers
-    SET spam_score = spam_score * @factor,
-        weighted_score = weighted_score * @factor
-    WHERE date_last_updated < @cutoff AND is_whitelisted = 0
-  `).run({ factor: decayFactor, cutoff });
-
-  const deleted = db.prepare(`
-    DELETE FROM spam_numbers
-    WHERE spam_score < @threshold AND date_last_updated < @cutoff AND is_whitelisted = 0
-  `).run({ threshold: deleteThreshold, cutoff });
-
-  // Clean orphaned spam_sources
-  db.prepare(`
-    DELETE FROM spam_sources
-    WHERE phone_number NOT IN (SELECT phone_number FROM spam_numbers)
-  `).run();
-
-  // Reclaim disk space
-  db.exec('VACUUM;');
-
-  return { decayed: decayed.changes, deleted: deleted.changes };
+function decayStaleData(db) {
+  return { decayed: 0, deleted: 0 };
 }
 
 /**

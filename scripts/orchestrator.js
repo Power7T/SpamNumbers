@@ -201,13 +201,8 @@ async function runAll(db, options = {}) {
     }
   }
 
-  // Run stale data decay after scraping
-  console.log('[orchestrator] Running stale data decay...');
-  const { decayed, deleted } = decayStaleData(db);
-  if (decayed > 0 || deleted > 0) {
-    console.log(`[orchestrator] Decay: ${decayed} scores reduced, ${deleted} entries removed\n`);
-  }
-
+  // Stale data decay removed as per user request.
+  
   finalizeRunLog(db, runId, { totalNew, totalUpdated, errors });
 
   // Print health warnings
@@ -270,11 +265,8 @@ async function runFullScan(db) {
   console.log('\n[MASTER] Phase 2: Autonomous OSINT Hunt...');
   await runHunt(db);
   
-  console.log('\n[MASTER] Phase 3: Historical Deep Archive Crawl...');
+  console.log('[MASTER] Phase 3: Historical Deep Archive Crawl...');
   await runDeepCrawl(db);
-  
-  console.log('\n[MASTER] Phase 4: Stale Data Cleanup (Decay)...');
-  decayStaleData(db);
   
   console.log('\n[MASTER] ✅ GLOBAL DEFENSE SEQUENCE COMPLETE.\n');
 }
