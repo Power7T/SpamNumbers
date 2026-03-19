@@ -225,6 +225,15 @@ function unwhitelistNumber(db, phoneNumber) {
 }
 
 /**
+ * Permanently delete a phone number and its sources from the database.
+ */
+function deleteNumber(db, phoneNumber) {
+  const result = db.prepare('DELETE FROM spam_numbers WHERE phone_number = ?').run(phoneNumber);
+  db.prepare('DELETE FROM spam_sources WHERE phone_number = ?').run(phoneNumber);
+  return result.changes > 0;
+}
+
+/**
  * DEPRECATED: Decay logic removed as per user request.
  * Spam numbers now stay in the database permanently.
  */
@@ -349,6 +358,7 @@ module.exports = {
   bulkLookup,
   whitelistNumber,
   unwhitelistNumber,
+  deleteNumber,
   decayStaleData,
   getAllNumbers,
   getStats,

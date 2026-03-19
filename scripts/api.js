@@ -132,6 +132,21 @@ app.get('/api/download-export', (req, res) => {
     res.download(filePath);
 });
 
+app.post('/api/delete', (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone required' });
+  
+  const proc = spawn('node', [path.join(__dirname, 'index.js'), 'delete', phone]);
+  proc.on('close', (code) => {
+    if (code === 0) {
+      liveLogs.push(`[DATA] Permanently deleted number: ${phone}`);
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ success: false });
+    }
+  });
+});
+
 app.post('/api/export', (req, res) => {
   if (activeProcess) return res.json({ status: 'already_running' });
   

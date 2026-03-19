@@ -19,7 +19,7 @@
 const fs = require('fs');
 const { getDb, closeDb } = require('./db/connection');
 const { initSchema } = require('./db/schema');
-const { lookupNumber, bulkLookup, whitelistNumber, unwhitelistNumber, decayStaleData, getStats, saveAI } = require('./db/queries');
+const { lookupNumber, bulkLookup, whitelistNumber, unwhitelistNumber, deleteNumber, decayStaleData, getStats, saveAI } = require('./db/queries');
 const { normalizePhone } = require('./normalizer');
 const { runAll, runHunt, runDeepCrawl, runFullScan } = require('./orchestrator');
 const { exportToCsv } = require('./exporter');
@@ -356,6 +356,17 @@ async function main() {
           ? `📵 ${phone} removed from whitelist`
           : `${phone} not found in database`
         );
+        break;
+      }
+
+      case 'delete': {
+        const rawInput = args[0];
+        const phone = normalizePhone(rawInput);
+        if (deleteNumber(db, phone)) {
+          console.log(`🗑️  ${phone} permanently removed from grid.`);
+        } else {
+          console.log(`${phone} not found in database.`);
+        }
         break;
       }
 

@@ -74,8 +74,9 @@ Use this skill when the user:
   9. **Bulk lookup from a text file** (`bulk`)
   10. **Whitelist or unwhitelist a number** (`whitelist`/`unwhitelist`)
   11. **Manually add a confirmed scam number** (`add`)
-  12. **Recover historical records** (`deep-crawl`)
-  13. **Configure API keys** (`config`) 
+  12. **Delete a specific number permanently** (`delete`)
+  13. **Recover historical records** (`deep-crawl`)
+  14. **Configure API keys** (`config`) 
 - Do not make up non-existent flags. Only use the commands mapped in the table.
 
 ## Agent Quick Commands
@@ -96,6 +97,7 @@ Use this skill when the user:
 | `bulk <file>` | `node scripts/index.js bulk <file>` |
 | `whitelist <number>` | `node scripts/index.js whitelist <number>` |
 | `unwhitelist <number>` | `node scripts/index.js unwhitelist <number>` |
+| `delete <number>` | `node scripts/index.js delete <number>` |
 | `deep-crawl` | `node scripts/index.js deep-crawl` |
 | `full-scan` | `node scripts/index.js full-scan` |
 | `config <key> <val>` | `node scripts/index.js config <key> <val>` |
