@@ -322,27 +322,43 @@ function updateScraperHealth(db, source, recordCount) {
  * Insert a new scrape_runs row and return its id.
  */
 function insertRunLog(db) {
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE scrape_runs
+    SET finished_at = COALESCE(finished_at, ?),
+        status = 'abandoned',
+        errors = CASE
+          WHEN errors IS NULL OR errors = '[]' THEN ?
+          ELSE errors
+        END
+    WHERE status = 'running'
+  `).run(
+    now,
+    JSON.stringify([{ source: 'orchestrator', message: 'Marked abandoned when a new scrape run started.' }])
+  );
+
   const result = db.prepare(`
     INSERT INTO scrape_runs (started_at, status)
     VALUES (?, 'running')
-  `).run(new Date().toISOString());
+  `).run(now);
   return result.lastInsertRowid;
 }
 
 /**
  * Finalize a scrape run row.
  */
-function finalizeRunLog(db, runId, { totalNew, totalUpdated, errors }) {
+function finalizeRunLog(db, runId, { totalNew, totalUpdated, errors, status = 'completed' }) {
   db.prepare(`
     UPDATE scrape_runs
     SET finished_at   = ?,
-        status        = 'completed',
+        status        = ?,
         total_new     = ?,
         total_updated = ?,
         errors        = ?
     WHERE id = ?
   `).run(
     new Date().toISOString(),
+    status,
     totalNew,
     totalUpdated,
     JSON.stringify(errors),

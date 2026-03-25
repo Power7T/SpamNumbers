@@ -40,6 +40,9 @@ async function init() {
     document.getElementById('btn-hunt').addEventListener('click', () => runOperation('hunt'));
     document.getElementById('btn-deep-crawl').addEventListener('click', () => runOperation('deep-crawl'));
     document.getElementById('btn-export').addEventListener('click', triggerExport);
+    document.getElementById('btn-download-last').addEventListener('click', () => {
+        window.location.href = `${API_BASE}/download-export?t=${Date.now()}`;
+    });
     document.getElementById('btn-full-scan').addEventListener('click', () => runOperation('full-scan'));
     document.getElementById('btn-manual-add').addEventListener('click', openAddModal);
     document.getElementById('btn-close-add').addEventListener('click', closeAddModal);
@@ -110,9 +113,7 @@ async function triggerExport() {
         const res = await fetch(`${API_BASE}/export`, { method: 'POST' });
         const data = await res.json();
         if(data.success) {
-            alert(`SUCCESS: Database exported! \n\nStarting download to your PC...`);
-            // Trigger browser download
-            window.location.href = `${API_BASE}/download-export`;
+            alert(`SUCCESS: Export complete!\n\nNow click the 📥 DOWNLOAD button to save the file.`);
         }
     } catch(e) {
         alert('Export failed. Check terminal logs.');

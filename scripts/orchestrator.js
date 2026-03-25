@@ -153,6 +153,7 @@ async function runAll(db, options = {}) {
   const errors = [];
   let totalNew = 0;
   let totalUpdated = 0;
+  let runStatus = 'completed';
 
   const useParallel = options.parallel !== false;
 
@@ -163,47 +164,54 @@ async function runAll(db, options = {}) {
   console.log(`[orchestrator] Running ${SCRAPERS.length} scrapers ${useParallel ? '(parallel groups)' : '(sequential)'}\n`);
 
 
-  if (useParallel) {
-    // Run in parallel groups to balance speed vs rate limiting
-    for (const groupNames of [PARALLEL_GROUP_1, PARALLEL_GROUP_2, PARALLEL_GROUP_3]) {
-      const { newCount, updatedCount } = await runGroup(db, groupNames, SCRAPERS, errors);
-      totalNew += newCount;
-      totalUpdated += updatedCount;
-    }
-  } else {
-    // Sequential fallback
-    for (const { name, fn } of SCRAPERS) {
-      try {
-        console.log(`[orchestrator] ▶ ${name}`);
-        const records = await runScraperWithRetry(name, () => fn(db));
-        
-        let newFromSource = 0;
-        let updatedFromSource = 0;
-
+  try {
+    if (useParallel) {
+      // Run in parallel groups to balance speed vs rate limiting
+      for (const groupNames of [PARALLEL_GROUP_1, PARALLEL_GROUP_2, PARALLEL_GROUP_3]) {
+        const { newCount, updatedCount } = await runGroup(db, groupNames, SCRAPERS, errors);
+        totalNew += newCount;
+        totalUpdated += updatedCount;
+      }
+    } else {
+      // Sequential fallback
+      for (const { name, fn } of SCRAPERS) {
         try {
-          const dbResult = upsertManyFromScraper(db, records);
-          newFromSource = dbResult.newCount;
-          updatedFromSource = dbResult.updatedCount;
-          totalNew += newFromSource;
-          totalUpdated += updatedFromSource;
-        } catch (dbErr) {
-          throw dbErr;
+          console.log(`[orchestrator] ▶ ${name}`);
+          const records = await runScraperWithRetry(name, () => fn(db));
+          
+          let newFromSource = 0;
+          let updatedFromSource = 0;
+
+          try {
+            const dbResult = upsertManyFromScraper(db, records);
+            newFromSource = dbResult.newCount;
+            updatedFromSource = dbResult.updatedCount;
+            totalNew += newFromSource;
+            totalUpdated += updatedFromSource;
+          } catch (dbErr) {
+            throw dbErr;
+          }
+
+          updateScraperHealth(db, name, records.length);
+
+          console.log(`[orchestrator] ✓ ${name}: ${records.length} records (${newFromSource} new, ${updatedFromSource} updated)\n`);
+        } catch (err) {
+          console.error(`[orchestrator] ✗ ${name} FAILED: ${err.message}\n`);
+          errors.push({ source: name, message: err.message });
+          updateScraperHealth(db, name, 0);
         }
-
-        updateScraperHealth(db, name, records.length);
-
-        console.log(`[orchestrator] ✓ ${name}: ${records.length} records (${newFromSource} new, ${updatedFromSource} updated)\n`);
-      } catch (err) {
-        console.error(`[orchestrator] ✗ ${name} FAILED: ${err.message}\n`);
-        errors.push({ source: name, message: err.message });
-        updateScraperHealth(db, name, 0);
       }
     }
+  } catch (err) {
+    runStatus = 'failed';
+    errors.push({ source: 'orchestrator', message: err.message });
+    throw err;
+  } finally {
+    const finalStatus = runStatus === 'failed'
+      ? 'failed'
+      : (errors.length > 0 ? 'completed_with_errors' : 'completed');
+    finalizeRunLog(db, runId, { totalNew, totalUpdated, errors, status: finalStatus });
   }
-
-  // Run results summarized below
-  
-  finalizeRunLog(db, runId, { totalNew, totalUpdated, errors });
 
   // Print health warnings
   const healthWarnings = db.prepare(
