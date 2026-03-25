@@ -9,7 +9,7 @@ const { getStats, lookupNumber, getAllNumbers } = require('./db/queries');
 const { spawn } = require('child_process');
 
 const EXPORTS_DIR = path.join(__dirname, 'exports');
-if (!fs.existsSync(EXPORTS_DIR)) fs.mkdirSync(EXPORTS_DIR);
+if (!fs.existsSync(EXPORTS_DIR)) fs.mkdirSync(EXPORTS_DIR, { recursive: true });
 
 let activeProcess = null;
 let liveLogs = ["[SYSTEM] OSINT API Server Initialized."];
@@ -24,7 +24,8 @@ const db = new Database(dbPath);
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
+app.use('/exports', express.static(path.join(__dirname, 'exports')));
 
 // API: Dashboard Summary
 app.get('/api/stats', (req, res) => {
@@ -120,16 +121,13 @@ app.post('/api/start', (req, res) => {
   res.json({ status: 'started', operation: command });
 });
 
-// DOWNLOAD EXPORT (Serves the latest file)
+// DOWNLOAD EXPORT (Redirects to static public file - bypasses res.download Linux issues)
 app.get('/api/download-export', (req, res) => {
-    const files = fs.readdirSync(EXPORTS_DIR);
-    if (files.length === 0) return res.status(404).json({ error: 'No exports found' });
-    
+    const files = fs.readdirSync(EXPORTS_DIR).filter(f => f.endsWith('.csv'));
+    if (files.length === 0) return res.status(404).send('No exports found. Click EXPORT first.');
     const newest = files.map(f => ({ name: f, time: fs.statSync(path.join(EXPORTS_DIR, f)).mtime.getTime() }))
                        .sort((a,b) => b.time - a.time)[0];
-    
-    const filePath = path.join(EXPORTS_DIR, newest.name);
-    res.download(filePath);
+    res.redirect('/exports/' + newest.name);
 });
 
 app.post('/api/delete', (req, res) => {
